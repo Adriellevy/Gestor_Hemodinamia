@@ -3,7 +3,7 @@ import {
   Activity, Plus, Search, Clock, AlertTriangle, CheckCircle2, Play, X,
   ChevronDown, RotateCcw, Stethoscope, Bone, Brain, Waves, Scan,
   Hospital, ListChecks, BedDouble, Filter, HeartPulse, Radiation, ShieldAlert, ShieldCheck, Truck, MessageCircle, Pencil,
-  Users, Check, Lock, UserCircle, Monitor, BarChart3, LogOut, Layers, QrCode, Download,
+  Users, Check, Lock, UserCircle, Monitor, BarChart3, LogOut, Layers, Zap, Heart, Syringe,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -15,31 +15,33 @@ const FONT_MONO = "'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace";
 
 // Persistencia del prototipo: almacenamiento del entorno de artifacts (sobrevive recargas).
 const STORE = (typeof window !== "undefined" && window.storage) ? window.storage : null;
-const STORE_KEY = "imagenes:estado";
+const STORE_KEY = "hemodinamia:estado";
 
-const IMAGE_TYPES = [
-  { id: "rx",        label: "Radiología",       short: "Rx",      dicom: "CR/DX", requiereAutorizacion: false, Icon: Bone,       badge: "bg-sky-50 text-sky-700 border-sky-200" },
-  { id: "tc",        label: "Tomografía",       short: "TC",      dicom: "CT",    requiereAutorizacion: true,  Icon: Scan,       badge: "bg-violet-50 text-violet-700 border-violet-200" },
-  { id: "rm",        label: "Resonancia",       short: "RM",      dicom: "MR",    requiereAutorizacion: true,  Icon: Brain,      badge: "bg-teal-50 text-teal-700 border-teal-200" },
-  { id: "eco",       label: "Ecografía",        short: "Eco",     dicom: "US",    requiereAutorizacion: false, Icon: Waves,      badge: "bg-amber-50 text-amber-700 border-amber-200" },
-  { id: "ecocardio", label: "Ecocardiografía",  short: "EcoC",    dicom: "US",    requiereAutorizacion: false, Icon: HeartPulse, badge: "bg-rose-50 text-rose-700 border-rose-200" },
-  { id: "mn",        label: "Medicina nuclear", short: "MN",      dicom: "NM",    requiereAutorizacion: true,  Icon: Radiation,  badge: "bg-lime-50 text-lime-700 border-lime-200" },
+const PROCEDIMIENTOS = [
+  { id: "ccg",            label: "Cinecoronariografía",        short: "CCG",      dicom: "XA", requiereAutorizacion: true,  Icon: HeartPulse,  badge: "bg-rose-50 text-rose-700 border-rose-200" },
+  { id: "atc",            label: "Angioplastia coronaria",     short: "ATC",      dicom: "XA", requiereAutorizacion: true,  Icon: Activity,    badge: "bg-red-50 text-red-700 border-red-200" },
+  { id: "cateterismo",    label: "Cateterismo derecho",        short: "Cat. D",   dicom: "XA", requiereAutorizacion: true,  Icon: Stethoscope, badge: "bg-sky-50 text-sky-700 border-sky-200" },
+  { id: "valvulas",       label: "Válvulas",                   short: "Válvulas", dicom: "XA", requiereAutorizacion: true,  Icon: Heart,       badge: "bg-teal-50 text-teal-700 border-teal-200" },
+  { id: "endoprotesis",   label: "Endoprótesis",               short: "Endopr.",  dicom: "XA", requiereAutorizacion: true,  Icon: Scan,        badge: "bg-amber-50 text-amber-700 border-amber-200" },
+  { id: "efa",            label: "Estudio electrofisiológico", short: "EEF",      dicom: "XA", requiereAutorizacion: true,  Icon: Zap,         badge: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+  { id: "neuro",          label: "Neurointervencionismo",      short: "Neuro",    dicom: "XA", requiereAutorizacion: true,  Icon: Brain,       badge: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200" },
+  { id: "flebologia",     label: "Flebología",                 short: "Flebo.",   dicom: "XA", requiereAutorizacion: true,  Icon: Waves,       badge: "bg-cyan-50 text-cyan-700 border-cyan-200" },
 ];
-const requiereAuth = (modalidad) => Boolean(typeMeta(modalidad)?.requiereAutorizacion);
-const typeMeta = (id) => IMAGE_TYPES.find((t) => t.id === id);
+const requiereAuth = (modalidad) => true; // en hemodinamia, todos los procedimientos requieren autorización administrativa (el código rojo la saltea, se contempla aparte)
+const typeMeta = (id) => PROCEDIMIENTOS.find((t) => t.id === id);
 
 /* ── Usuarios, roles y permisos ─────────────────────────────────────────
    Permisos basados en capacidades. Cada rol agrupa capacidades; cada usuario
    tiene un rol y, opcionalmente, un alcance (un servicio, o sectores de imágenes).
    En producción esto vendría del IAM del hospital; acá es un padrón de prueba. */
 const PERMISOS = {
-  pedir_estudio:      "Solicitar estudios",
+  pedir_estudio:      "Solicitar procedimientos",
   cancelar_pedido:    "Cancelar pedidos",
   autorizar:          "Autorización administrativa",
   iniciar:            "Iniciar / dar ingreso",
   finalizar:          "Finalizar (realizado)",
   retroceder:         "Retroceder estado",
-  ver_imagenes:       "Ver worklist de imágenes",
+  ver_imagenes:       "Ver worklist de hemodinamia",
   ver_servicio:       "Ver lista del servicio",
   gestionar_usuarios: "Gestionar usuarios",
 };
@@ -47,7 +49,7 @@ const PERMISOS_ALL = Object.keys(PERMISOS);
 
 const ROLES = {
   medico:         { label: "Médico solicitante", color: "#2563eb", permisos: ["pedir_estudio", "cancelar_pedido", "ver_servicio", "ver_imagenes"] },
-  tecnico:        { label: "Personal de imágenes", color: "#0d9488", permisos: ["iniciar", "finalizar", "retroceder", "ver_imagenes"] },
+  tecnico:        { label: "Personal de hemodinamia", color: "#0d9488", permisos: ["iniciar", "finalizar", "retroceder", "ver_imagenes"] },
   administrativo: { label: "Administrativo",       color: "#ea580c", permisos: ["autorizar", "ver_imagenes"] },
   admin:          { label: "Admin general",        color: "#7c3aed", permisos: PERMISOS_ALL },
 };
@@ -85,7 +87,7 @@ const SECTORES = [
 ];
 
 const PRIORITIES = {
-  urgente:     { label: "Urgente - código rojo", short: "Código rojo", badge: "bg-red-50 text-red-700 border-red-200",        bar: "#dc2626", rank: 0, umbralRojo: 10,  umbralAlerta: 30 },
+  urgente:     { label: "Urgente - código rojo", short: "Código rojo", badge: "bg-red-50 text-red-700 border-red-200",        bar: "#dc2626", rank: 0, umbralRojo: 90,  umbralAlerta: 60 },
   prioritario: { label: "Prioridad",             short: "Prioridad",   badge: "bg-amber-50 text-amber-700 border-amber-200",  bar: "#d97706", rank: 1, umbralRojo: 120, umbralAlerta: 120 },
   normal:      { label: "Normal",                short: "Normal",      badge: "bg-slate-100 text-slate-600 border-slate-200", bar: "#cbd5e1", rank: 2, umbralRojo: null, umbralAlerta: null },
 };
@@ -101,12 +103,9 @@ function alertaDemora(study, now) {
 /* Lista cerrada de casos código rojo: (modalidad + diagnóstico) → estudio.
    Solo estos habilitan código rojo; cualquier otro caso va como "Prioridad". */
 const CASOS_CODIGO_ROJO = [
-  { modalidad: "tc", dx: "TEP",               estudio: "Angiotomografía de tórax (protocolo TEP)",                  conContraste: true },
-  { modalidad: "tc", dx: "Síndrome aórtico",  estudio: "Angiotomografía de aorta",                                  conContraste: true },
-  { modalidad: "tc", dx: "ACV",               estudio: "Angiotomografía de encéfalo (vasos intra y extracraneanos)", conContraste: true },
-  { modalidad: "rm", dx: "ACV",               estudio: "RMN de encéfalo (protocolo stroke)",                        conContraste: false },
-  { modalidad: "rx", dx: "Neumotórax",        estudio: "Rx de tórax",                                               conContraste: false, tipoTraslado: "habitacion" },
-  { modalidad: "ecocardio", dx: "Sospecha de taponamiento", estudio: "Ecocardiograma de urgencia (descartar taponamiento)", conContraste: false, tipoTraslado: "habitacion" },
+  { modalidad: "atc",              dx: "IAM con supradesnivel del ST (STEMI)", estudio: "Angioplastia primaria",            conContraste: true,  tipoTraslado: "camilla" },
+  { modalidad: "atc",              dx: "Shock cardiogénico",                   estudio: "Coronariografía + ATC de urgencia", conContraste: true,  tipoTraslado: "camilla" },
+  { modalidad: "cateterismo",      dx: "TEP de alto riesgo",                   estudio: "Trombectomía/trombólisis dirigida", conContraste: true,  tipoTraslado: "camilla" },
 ];
 
 /* Ciclo de vida del pedido en este worklist:
@@ -131,19 +130,13 @@ const TRASLADOS = {
   habitacion:  { label: "En habitación",          requiereTraslado: false },
   ambulatorio: { label: "Por sus propios medios", requiereTraslado: false },
 };
-const MODALIDADES_PORTATIL = ["rx", "eco", "ecocardio"];
-const opcionesTraslado = (modalidad, sector) => {
-  const ops = ["silla", "camilla", "asistido"];
-  if (MODALIDADES_PORTATIL.includes(modalidad)) ops.push("habitacion");  // estudio portátil / a la cama
-  if (sector === "Guardia") ops.push("ambulatorio");                     // "por sus propios medios": solo en Guardia
-  return ops;
-};
+const opcionesTraslado = (modalidad, sector) => ["silla", "camilla", "asistido"]; // la sala de hemodinamia es fija: el paciente siempre se traslada
 
 /* Notificación al ayudante: abre WhatsApp con el mensaje precargado. El número/
    grupo/central es configurable; luego se integra al módulo de traslados. */
 const NUMERO_TRASLADOS = "5491100000000";
 function mensajeTraslado(study, tipo = "ida", hermanos = []) {
-  const imagenes = typeMeta(study.modalidad)?.label ?? "Imágenes";
+  const destino = "Sala de hemodinamia";
   const ubic = `${study._servicio} - ${study._paciente.cama}`;
   const tr = TRASLADOS[study.tipoTraslado]?.label ?? "—";
   const paciente = `Paciente: ${study._paciente.nombreCompleto} (HC ${study._paciente.hc})`;
@@ -156,7 +149,7 @@ function mensajeTraslado(study, tipo = "ida", hermanos = []) {
       vuelta ? "Solicitud de traslado (regreso a origen)" : "Solicitud de traslado",
       paciente,
       ...(study.aislamiento ? ["AISLAMIENTO: requiere precauciones (traer EPP)."] : []),
-      ...(vuelta ? [`Desde: ${imagenes}`, `Hacia: ${ubic}`] : [`Origen: ${ubic}`, `Destino: ${imagenes}`]),
+      ...(vuelta ? [`Desde: ${destino}`, `Hacia: ${ubic}`] : [`Origen: ${ubic}`, `Destino: ${destino}`]),
       `Traslado: ${tr}`,
       `Estudio: ${study.descripcion}${vuelta ? " (finalizado)" : ""}`,
       ...(!vuelta && hermanos.length ? [`Otros estudios del paciente: ${hermanos.map((h) => `${typeMeta(h.modalidad)?.short} ${h.descripcion}`).join("; ")}`] : []),
@@ -190,7 +183,7 @@ function historialSeed(p) {
    en una pantalla del sector de imágenes. Privacidad: apellido + HC + cama/sector. */
 function BoardView({ studies, now, onExit }) {
   const [reloj, setReloj] = useState(Date.now());
-  const [filtro, setFiltro] = useState("todos");
+  const [filtro, setFiltro] = useState([]); // multi-selección: [] = todas
   useEffect(() => { const t = setInterval(() => setReloj(Date.now()), 1000); return () => clearInterval(t); }, []);
   const ESTADO_BOARD = {
     autorizacion_pendiente: { label: "AUTORIZAR",   cls: "text-amber-300" },
@@ -199,8 +192,18 @@ function BoardView({ studies, now, onExit }) {
     en_proceso:             { label: "EN PROCESO",  cls: "text-blue-300" },
   };
   const COLS = "1fr 2fr 1.6fr 2.2fr 0.9fr 1.2fr 0.9fr";
+  // En la pizarra, válvulas y endoprótesis comparten un chip (bajo volumen diario).
+  const chips = [];
+  const vistos = new Set();
+  PROCEDIMIENTOS.forEach((t) => {
+    if (t.id === "valvulas" || t.id === "endoprotesis") {
+      if (!vistos.has("estructural")) { chips.push({ id: "estructural", short: "Válvulas/Endopr.", Icon: Heart, match: ["valvulas", "endoprotesis"] }); vistos.add("estructural"); }
+    } else {
+      chips.push({ id: t.id, short: t.short, Icon: t.Icon, match: [t.id] });
+    }
+  });
   const activos = studies
-    .filter((s) => STATUS[s.estado]?.active && (filtro === "todos" || s.modalidad === filtro))
+    .filter((s) => STATUS[s.estado]?.active && (filtro.length === 0 || filtro.some((fid) => chips.find((c) => c.id === fid)?.match.includes(s.modalidad))))
     .sort((a, b) => (PRIORITIES[a.prioridad].rank - PRIORITIES[b.prioridad].rank) || (a.fechaSolicitud - b.fechaSolicitud));
   const rojos = activos.filter((s) => s.prioridad === "urgente").length;
   return (
@@ -209,7 +212,7 @@ function BoardView({ studies, now, onExit }) {
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-lg bg-white text-slate-900"><Hospital size={22} /></span>
           <div>
-            <div className="text-2xl font-bold tracking-tight">Imágenes — Cola de estudios</div>
+            <div className="text-2xl font-bold tracking-tight">Hemodinamia — Cola de procedimientos</div>
             <div className="text-sm text-slate-400">{activos.length} en cola{rojos > 0 ? ` · ${rojos} código rojo` : ""}</div>
           </div>
         </div>
@@ -222,9 +225,9 @@ function BoardView({ studies, now, onExit }) {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 px-8 py-2.5">
-        <button onClick={() => setFiltro("todos")} className={`rounded-lg px-3 py-1 text-sm font-medium ${filtro === "todos" ? "bg-white text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>Todas</button>
-        {IMAGE_TYPES.map((tp) => (
-          <button key={tp.id} onClick={() => setFiltro(tp.id)} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-sm font-medium ${filtro === tp.id ? "bg-white text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}><tp.Icon size={14} /> {tp.short}</button>
+        <button onClick={() => setFiltro([])} className={`rounded-lg px-3 py-1 text-sm font-medium ${filtro.length === 0 ? "bg-white text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>Todas</button>
+        {chips.map((tp) => (
+          <button key={tp.id} onClick={() => setFiltro((arr) => arr.includes(tp.id) ? arr.filter((x) => x !== tp.id) : [...arr, tp.id])} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-sm font-medium ${filtro.includes(tp.id) ? "bg-white text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}><tp.Icon size={14} /> {tp.short}</button>
         ))}
       </div>
       <div className="gap-4 border-b border-slate-800 px-8 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500" style={{ display: "grid", gridTemplateColumns: COLS }}>
@@ -304,18 +307,18 @@ const INTERNACIONES = [
 ];
 
 const PEDIDOS_SEED = [
-  { id: uid("ped_"), internacionId: "i1",  servicioSolicitanteId: "UCO", creadoPor: "u2",    modalidad: "tc",  descripcion: "Angiotomografía de encéfalo (vasos intra y extracraneanos)", tipoTraslado: "camilla", regionAnatomica: "Encéfalo", conContraste: true,  prioridad: "urgente",     estado: "solicitado", motivo: "ACV",   fechaSolicitud: minsAgo(54) },
-  { id: uid("ped_"), internacionId: "i2",  servicioSolicitanteId: "UTI 1 (5to piso)", modalidad: "rx",  descripcion: "Rx de tórax portátil", tipoTraslado: "habitacion",                regionAnatomica: "Tórax",            conContraste: false, prioridad: "urgente",     aislamiento: true, estado: "en_proceso", motivo: "Control de vía central.",                     fechaSolicitud: minsAgo(38) },
-  { id: uid("ped_"), internacionId: "i3",  servicioSolicitanteId: "Clínica médica (9no piso B)",         modalidad: "rx",  descripcion: "Rx de muñeca derecha (F y P)", tipoTraslado: "silla",        regionAnatomica: "Muñeca", lateralidad: "derecha", conContraste: false, prioridad: "prioritario", estado: "solicitado", motivo: "Traumatismo, sospecha de fractura.",          fechaSolicitud: minsAgo(22) },
-  { id: uid("ped_"), internacionId: "i4",  servicioSolicitanteId: "Telemetría",       modalidad: "ecocardio", descripcion: "Ecocardiograma transtorácico", tipoTraslado: "habitacion",        regionAnatomica: "Corazón",          conContraste: false, prioridad: "prioritario", estado: "solicitado", motivo: "Disnea de esfuerzo, evaluar FEVI.",           fechaSolicitud: minsAgo(71) },
-  { id: uid("ped_"), internacionId: "i5",  servicioSolicitanteId: "Clínica médica (8vo piso A)",        modalidad: "rm",  descripcion: "RM de cerebro c/ y s/ contraste", tipoTraslado: "camilla",     regionAnatomica: "Cerebro",          conContraste: true,  prioridad: "prioritario", estado: "autorizacion_pendiente", motivo: "Cefalea persistente con foco neurológico.",   fechaSolicitud: minsAgo(95) },
-  { id: uid("ped_"), internacionId: "i6",  servicioSolicitanteId: "Clínica médica (7mo piso A)", creadoPor: "u1",    modalidad: "rx",  descripcion: "Rx de tórax (F)", tipoTraslado: "habitacion",                     regionAnatomica: "Tórax",            conContraste: false, prioridad: "normal",      estado: "realizado",  motivo: "Control evolutivo de neumonía.",              fechaSolicitud: minsAgo(160) },
-  { id: uid("ped_"), internacionId: "i7",  servicioSolicitanteId: "Recuperación cardiovascular",           modalidad: "tc",  descripcion: "Angiotomografía de tórax (protocolo TEP)", tipoTraslado: "asistido",         regionAnatomica: "Tórax",            conContraste: true,  prioridad: "urgente",     estado: "solicitado", motivo: "TEP",            fechaSolicitud: minsAgo(12) },
-  { id: uid("ped_"), internacionId: "i8",  servicioSolicitanteId: "UTI 2 (6to piso)", modalidad: "eco", descripcion: "Eco-doppler de MMII", tipoTraslado: "habitacion",                 regionAnatomica: "Miembros inferiores", lateralidad: "bilateral", conContraste: false, prioridad: "prioritario", estado: "en_proceso", motivo: "Edema unilateral, descartar TVP.",            fechaSolicitud: minsAgo(44) },
-  { id: uid("ped_"), internacionId: "i9",  servicioSolicitanteId: "Guardia",         modalidad: "eco", descripcion: "Ecografía abdominal", tipoTraslado: "ambulatorio",                 regionAnatomica: "Abdomen",          conContraste: false, prioridad: "normal",      estado: "solicitado", motivo: "Dolor en fosa ilíaca derecha.",               fechaSolicitud: minsAgo(8) },
-  { id: uid("ped_"), internacionId: "i10", servicioSolicitanteId: "Clínica médica (8vo piso B)",        modalidad: "tc",  descripcion: "Tomografía de encéfalo (sin contraste)", tipoTraslado: "camilla",          regionAnatomica: "Cerebro",          conContraste: false, prioridad: "urgente",     estado: "realizado",  motivo: "ACV",          fechaSolicitud: minsAgo(190) },
-  { id: uid("ped_"), internacionId: "i11", servicioSolicitanteId: "Telemetría",       modalidad: "rx",  descripcion: "Rx de tórax (F y P)", tipoTraslado: "silla",                 regionAnatomica: "Tórax",            conContraste: false, prioridad: "normal",      aislamiento: true, estado: "solicitado", motivo: "Evaluación prequirúrgica.",                   fechaSolicitud: minsAgo(33) },
-  { id: uid("ped_"), internacionId: "i6",  servicioSolicitanteId: "Clínica médica (7mo piso A)", creadoPor: "u1",    modalidad: "mn",  descripcion: "Centellograma óseo corporal total", tipoTraslado: "camilla",   regionAnatomica: "Cuerpo entero",    conContraste: false, prioridad: "normal",      estado: "autorizacion_pendiente", motivo: "Búsqueda de secundarismo óseo.",  fechaSolicitud: minsAgo(120) },
+  { id: uid("ped_"), internacionId: "i1",  servicioSolicitanteId: "UCO", creadoPor: "u2", modalidad: "atc", descripcion: "Angioplastia primaria", tipoTraslado: "camilla", conContraste: true, prioridad: "urgente", estado: "solicitado", motivo: "IAM con supradesnivel del ST (STEMI)", fechaSolicitud: minsAgo(42) },
+  { id: uid("ped_"), internacionId: "i2",  servicioSolicitanteId: "UTI 1 (5to piso)", modalidad: "cateterismo", descripcion: "Cateterismo derecho", tipoTraslado: "camilla", conContraste: false, prioridad: "prioritario", aislamiento: true, estado: "en_proceso", motivo: "Evaluación de hipertensión pulmonar.", fechaSolicitud: minsAgo(36) },
+  { id: uid("ped_"), internacionId: "i3",  servicioSolicitanteId: "Clínica médica (9no piso B)", modalidad: "ccg", descripcion: "Cinecoronariografía diagnóstica", tipoTraslado: "silla", conContraste: true, prioridad: "prioritario", estado: "solicitado", motivo: "Angina inestable, estratificación.", fechaSolicitud: minsAgo(28) },
+  { id: uid("ped_"), internacionId: "i4",  servicioSolicitanteId: "Telemetría", modalidad: "efa", descripcion: "Estudio electrofisiológico + ablación", tipoTraslado: "camilla", conContraste: false, prioridad: "prioritario", estado: "autorizacion_pendiente", motivo: "Taquicardia supraventricular recurrente.", fechaSolicitud: minsAgo(85) },
+  { id: uid("ped_"), internacionId: "i5",  servicioSolicitanteId: "Clínica médica (8vo piso A)", modalidad: "valvulas", descripcion: "MitraClip (insuficiencia mitral)", tipoTraslado: "camilla", conContraste: false, prioridad: "prioritario", estado: "autorizacion_pendiente", motivo: "Insuficiencia mitral severa sintomática.", fechaSolicitud: minsAgo(115) },
+  { id: uid("ped_"), internacionId: "i6",  servicioSolicitanteId: "Clínica médica (7mo piso A)", creadoPor: "u1", modalidad: "ccg", descripcion: "Cinecoronariografía diagnóstica", tipoTraslado: "silla", conContraste: true, prioridad: "normal", estado: "realizado", motivo: "Cardiopatía isquémica crónica.", fechaSolicitud: minsAgo(175) },
+  { id: uid("ped_"), internacionId: "i7",  servicioSolicitanteId: "Recuperación cardiovascular", modalidad: "atc", descripcion: "Angioplastia coronaria con stent", tipoTraslado: "camilla", conContraste: true, prioridad: "prioritario", estado: "solicitado", motivo: "Lesión severa de descendente anterior.", fechaSolicitud: minsAgo(20) },
+  { id: uid("ped_"), internacionId: "i8",  servicioSolicitanteId: "UTI 2 (6to piso)", modalidad: "atc", descripcion: "Coronariografía + ATC de urgencia", tipoTraslado: "camilla", conContraste: true, prioridad: "urgente", aislamiento: true, estado: "en_proceso", motivo: "Shock cardiogénico", fechaSolicitud: minsAgo(16) },
+  { id: uid("ped_"), internacionId: "i9",  servicioSolicitanteId: "Guardia", modalidad: "ccg", descripcion: "Cinecoronariografía", tipoTraslado: "camilla", conContraste: true, prioridad: "prioritario", estado: "solicitado", motivo: "Dolor torácico con troponinas en ascenso.", fechaSolicitud: minsAgo(18) },
+  { id: uid("ped_"), internacionId: "i10", servicioSolicitanteId: "Clínica médica (8vo piso B)", modalidad: "valvulas", descripcion: "TAVI - implante valvular aórtico", tipoTraslado: "camilla", conContraste: true, prioridad: "normal", estado: "autorizacion_pendiente", motivo: "Estenosis aórtica severa sintomática.", fechaSolicitud: minsAgo(130) },
+  { id: uid("ped_"), internacionId: "i11", servicioSolicitanteId: "Telemetría", modalidad: "endoprotesis", descripcion: "Cierre percutáneo de orejuela izquierda", tipoTraslado: "camilla", conContraste: true, prioridad: "normal", estado: "solicitado", motivo: "FA no valvular con alto riesgo de sangrado.", fechaSolicitud: minsAgo(48) },
+  { id: uid("ped_"), internacionId: "i7",  servicioSolicitanteId: "Recuperación cardiovascular", creadoPor: "u1", modalidad: "cateterismo", descripcion: "Cateterismo derecho de control", tipoTraslado: "camilla", conContraste: false, prioridad: "normal", estado: "solicitado", motivo: "Control hemodinámico evolutivo.", fechaSolicitud: minsAgo(62) },
 ];
 
 /* ── Padrón del hospital (stand-in de la base/RIS + mapa de camas) ──────
@@ -397,237 +400,8 @@ function Kpi({ Icon, label, value, accent }) {
   );
 }
 
-/* ── QR para pacientes ambulatorios (Guardia, "por sus propios medios") ──
-   Generador de QR autónomo (byte mode, ECC L, versiones 1-13). El QR codifica
-   el instructivo como texto plano: el paciente lo escanea con la cámara y ve
-   los datos del estudio y los pasos a seguir. (En producción: link al sistema.) */
-const INSTRUCCIONES_AMBULATORIO = [
-  "1) Desde Guardia, siga la cartelería hacia Diagnóstico por Imágenes.",
-  "2) Tome el ascensor central hasta el 2do piso.",
-  "3) Preséntese en la recepción de Imágenes mostrando este código.",
-  "4) Aguarde a ser llamado por su nombre.",
-]; // TODO: ajustar el recorrido real del hospital
-
-const qrPayload = (study) => {
-  const p = study._paciente;
-  const lineas = [
-    "PEDIDO DE ESTUDIO — IMÁGENES",
-    `Paciente: ${p.nombreCompleto} (HC ${p.hc})`,
-    `Estudio: ${typeMeta(study.modalidad)?.label} — ${study.descripcion}`,
-    ...(study.conContraste ? ["Requiere contraste"] : []),
-    `Solicitado: ${fmtFecha(study.fechaSolicitud)} ${fmtHora(study.fechaSolicitud)} hs`,
-    "PASOS A SEGUIR:",
-    ...INSTRUCCIONES_AMBULATORIO,
-  ];
-  let texto = lineas.join("\n");
-  const enc = new TextEncoder();
-  while (enc.encode(texto).length > 420) texto = texto.slice(0, -1); // límite de capacidad del QR (v13-L)
-  return texto;
-};
-
-const qrMatrix = (text) => {
-  const ECC_L = [0, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26];   // codewords de corrección por bloque (nivel L)
-  const NBLK_L = [0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4];           // cantidad de bloques (nivel L)
-  const rawModules = (v) => {
-    let r = (16 * v + 128) * v + 64;
-    if (v >= 2) {
-      const na = Math.floor(v / 7) + 2;
-      r -= (25 * na - 10) * na - 55;
-      if (v >= 7) r -= 36;
-    }
-    return r;
-  };
-  const dataCw = (v) => Math.floor(rawModules(v) / 8) - ECC_L[v] * NBLK_L[v];
-  const bytes = Array.from(new TextEncoder().encode(text));
-  let ver = 0;
-  for (let v = 1; v <= 13; v++) {
-    const cap = dataCw(v) * 8 - 4 - (v <= 9 ? 8 : 16);
-    if (bytes.length * 8 <= cap) { ver = v; break; }
-  }
-  if (!ver) return null;
-
-  // ── bitstream de datos ──
-  const bits = [];
-  const put = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
-  put(4, 4);                                  // modo byte
-  put(bytes.length, ver <= 9 ? 8 : 16);       // longitud
-  bytes.forEach((b) => put(b, 8));
-  const capBits = dataCw(ver) * 8;
-  put(0, Math.min(4, capBits - bits.length)); // terminador
-  while (bits.length % 8 !== 0) bits.push(0);
-  const data = [];
-  for (let i = 0; i < bits.length; i += 8) data.push(parseInt(bits.slice(i, i + 8).join(""), 2));
-  for (let pad = 0xec; data.length < dataCw(ver); pad ^= 0xec ^ 0x11) data.push(pad);
-
-  // ── Reed-Solomon (GF 256, polinomio 0x11d) ──
-  const gfMul = (x, y) => {
-    let z = 0;
-    for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11d); z ^= ((y >>> i) & 1) * x; }
-    return z;
-  };
-  const rsDivisor = (deg) => {
-    const res = new Array(deg - 1).fill(0); res.push(1);
-    let root = 1;
-    for (let i = 0; i < deg; i++) {
-      for (let j = 0; j < res.length; j++) {
-        res[j] = gfMul(res[j], root);
-        if (j + 1 < res.length) res[j] ^= res[j + 1];
-      }
-      root = gfMul(root, 2);
-    }
-    return res;
-  };
-  const rsRemainder = (dat, div) => {
-    const res = div.map(() => 0);
-    for (const b of dat) {
-      const factor = b ^ res.shift();
-      res.push(0);
-      div.forEach((coef, i) => { res[i] ^= gfMul(coef, factor); });
-    }
-    return res;
-  };
-
-  // ── bloques + intercalado ──
-  const nBlk = NBLK_L[ver], ecLen = ECC_L[ver];
-  const raw = Math.floor(rawModules(ver) / 8);
-  const nShort = nBlk - (raw % nBlk);
-  const shortLen = Math.floor(raw / nBlk);
-  const div = rsDivisor(ecLen);
-  const blocks = [];
-  for (let i = 0, k = 0; i < nBlk; i++) {
-    const dat = data.slice(k, k + shortLen - ecLen + (i < nShort ? 0 : 1));
-    k += dat.length;
-    const ecc = rsRemainder(dat, div);
-    if (i < nShort) dat.push(0); // hueco del bloque corto
-    blocks.push(dat.concat(ecc));
-  }
-  const all = [];
-  for (let i = 0; i < blocks[nBlk - 1].length; i++)
-    blocks.forEach((blk, j) => { if (i !== shortLen - ecLen || j >= nShort) all.push(blk[i]); });
-
-  // ── matriz ──
-  const size = ver * 4 + 17;
-  const mod = Array.from({ length: size }, () => new Array(size).fill(false));
-  const fn = Array.from({ length: size }, () => new Array(size).fill(false));
-  const setFn = (x, y, dark) => { mod[y][x] = dark; fn[y][x] = true; };
-  for (let i = 0; i < size; i++) { setFn(6, i, i % 2 === 0); setFn(i, 6, i % 2 === 0); }
-  const finder = (cx, cy) => {
-    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
-      const x = cx + dx, y = cy + dy;
-      if (x >= 0 && x < size && y >= 0 && y < size) {
-        const d = Math.max(Math.abs(dx), Math.abs(dy));
-        setFn(x, y, d !== 2 && d !== 4);
-      }
-    }
-  };
-  finder(3, 3); finder(size - 4, 3); finder(3, size - 4);
-  if (ver >= 2) {
-    const na = Math.floor(ver / 7) + 2;
-    const step = Math.ceil((ver * 4 + 4) / (na * 2 - 2)) * 2;
-    const pos = [6];
-    for (let p = size - 7; pos.length < na; p -= step) pos.splice(1, 0, p);
-    for (let i = 0; i < na; i++) for (let j = 0; j < na; j++) {
-      if ((i === 0 && j === 0) || (i === 0 && j === na - 1) || (i === na - 1 && j === 0)) continue;
-      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++)
-        setFn(pos[i] + dx, pos[j] + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
-    }
-  }
-  // info de formato (ECC L = 1, máscara 0) — colocada antes de los datos
-  const getBit = (x, i) => ((x >>> i) & 1) !== 0;
-  let fRem = (1 << 3) | 0;
-  for (let i = 0; i < 10; i++) fRem = (fRem << 1) ^ ((fRem >>> 9) * 0x537);
-  const fBits = ((((1 << 3) | 0) << 10) | fRem) ^ 0x5412;
-  for (let i = 0; i <= 5; i++) setFn(8, i, getBit(fBits, i));
-  setFn(8, 7, getBit(fBits, 6)); setFn(8, 8, getBit(fBits, 7)); setFn(7, 8, getBit(fBits, 8));
-  for (let i = 9; i < 15; i++) setFn(14 - i, 8, getBit(fBits, i));
-  for (let i = 0; i < 8; i++) setFn(size - 1 - i, 8, getBit(fBits, i));
-  for (let i = 8; i < 15; i++) setFn(8, size - 15 + i, getBit(fBits, i));
-  setFn(8, size - 8, true);
-  if (ver >= 7) {
-    let vRem = ver;
-    for (let i = 0; i < 12; i++) vRem = (vRem << 1) ^ ((vRem >>> 11) * 0x1f25);
-    const vBits = (ver << 12) | vRem;
-    for (let i = 0; i < 18; i++) {
-      const b = getBit(vBits, i), a = size - 11 + (i % 3), c = Math.floor(i / 3);
-      setFn(a, c, b); setFn(c, a, b);
-    }
-  }
-  // colocación de datos en zigzag
-  let bi = 0;
-  for (let right = size - 1; right >= 1; right -= 2) {
-    if (right === 6) right = 5;
-    for (let vert = 0; vert < size; vert++) {
-      for (let j = 0; j < 2; j++) {
-        const x = right - j;
-        const upward = ((right + 1) & 2) === 0;
-        const y = upward ? size - 1 - vert : vert;
-        if (!fn[y][x] && bi < all.length * 8) {
-          mod[y][x] = getBit(all[bi >>> 3], 7 - (bi & 7));
-          bi++;
-        }
-      }
-    }
-  }
-  // máscara 0
-  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++)
-    if (!fn[y][x] && (x + y) % 2 === 0) mod[y][x] = !mod[y][x];
-  return mod;
-};
-
-function QRSvg({ matrix, size = 250 }) {
-  const n = matrix.length;
-  let d = "";
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++)
-    if (matrix[y][x]) d += `M${x} ${y}h1v1h-1z`;
-  return (
-    <svg viewBox={`-4 -4 ${n + 8} ${n + 8}`} width={size} height={size} role="img" aria-label="Código QR con el instructivo del estudio">
-      <rect x={-4} y={-4} width={n + 8} height={n + 8} fill="#ffffff" />
-      <path d={d} fill="#0f172a" />
-    </svg>
-  );
-}
-
-function QrModal({ study, onClose }) {
-  const payload = qrPayload(study);
-  const matrix = qrMatrix(payload);
-  const descargar = () => {
-    const blob = new Blob(["\ufeff" + payload], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `instructivo-${study._paciente.hc}.txt`; a.click();
-    URL.revokeObjectURL(url);
-  };
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-start justify-between gap-2">
-          <div>
-            <h3 className="text-base font-semibold text-slate-900">QR para el paciente</h3>
-            <p className="text-xs text-slate-500">El paciente lo escanea con la cámara del teléfono y ve el instructivo. Mostralo en pantalla o imprimilo.</p>
-          </div>
-          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button>
-        </div>
-        {matrix ? (
-          <div className="flex justify-center rounded-xl border border-slate-200 bg-white p-3">
-            <QRSvg matrix={matrix} />
-          </div>
-        ) : (
-          <p className="rounded-lg bg-red-50 p-3 text-xs text-red-700">No se pudo generar el QR (contenido demasiado largo).</p>
-        )}
-        <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-xs leading-relaxed text-slate-600" style={{ fontFamily: FONT_MONO }}>{payload}</pre>
-        <div className="mt-3 flex justify-end gap-2">
-          <button onClick={descargar} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"><Download size={13} /> Descargar instructivo (.txt)</button>
-          <button onClick={onClose} className="rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-medium text-white hover:bg-slate-800">Listo</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
 function StudyCard({ study, role, now, perms = {}, currentUser, todos = [], onAdvance, onRevert, onAuthorize, onTransfer = () => {}, onEdit = () => {}, onAvisado = () => {}, onEnOrigen = () => {}, onCancel }) {
   const [verHist, setVerHist] = useState(false);
-  const [qrOpen, setQrOpen] = useState(false);
   const t = typeMeta(study.modalidad);
   const pr = PRIORITIES[study.prioridad];
   const st = STATUS[study.estado];
@@ -683,10 +457,6 @@ function StudyCard({ study, role, now, perms = {}, currentUser, todos = [], onAd
         <p className="mt-2 text-sm font-medium text-slate-800">{study.descripcion}</p>
         {study.motivo && <p className="mt-0.5 text-xs leading-snug text-slate-500">{study.motivo}</p>}
         <p className="mt-1 inline-flex items-center gap-1 text-xs text-slate-500"><Truck size={12} className="text-slate-400" /> {TRASLADOS[study.tipoTraslado]?.label ?? "—"}{!needsTransfer && <span className="text-slate-400"> · sin traslado</span>}</p>
-        {study.tipoTraslado === "ambulatorio" && STATUS[study.estado]?.active && (
-          <button onClick={() => setQrOpen(true)} className="ml-2 inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-0.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"><QrCode size={12} /> QR para el paciente</button>
-        )}
-        {qrOpen && <QrModal study={study} onClose={() => setQrOpen(false)} />}
         {hermanos.length > 0 && (
           <p className={`mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium ${study.estado === "en_proceso" ? "bg-amber-50 text-amber-700" : "bg-violet-50 text-violet-700"}`}>
             <Layers size={11} /> {study.estado === "en_proceso"
@@ -725,13 +495,6 @@ function StudyCard({ study, role, now, perms = {}, currentUser, todos = [], onAd
                   <button onClick={() => (na.authorize ? onAuthorize(study.id) : onAdvance(study.id))} className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-white transition-colors ${na.cls}`}>
                     <na.Icon size={12} /> {na.label}
                   </button>
-                )
-              )}
-              {["eco", "ecocardio"].includes(study.modalidad) && needsTransfer && perms.iniciar && (study.estado === "solicitado" || study.estado === "traslado_solicitado") && (
-                study.estado === "traslado_solicitado" ? (
-                  <a href={linkWhatsApp(study, "sintraslado")} target="_blank" rel="noopener noreferrer" onClick={() => onEnOrigen(study.id)} title="Hacer en la cama del paciente (portátil, sin traslado) y avisar al ayudante" className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"><BedDouble size={12} /> Hacer en origen</a>
-                ) : (
-                  <button onClick={() => onEnOrigen(study.id)} title="Hacer en la cama del paciente (portátil, sin traslado)" className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"><BedDouble size={12} /> Hacer en origen</button>
                 )
               )}
               {na && !puedeAccion && study.estado === "autorizacion_pendiente" && (
@@ -851,7 +614,7 @@ function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, areaRestr
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4" style={{ animation: "fade .18s ease" }} onClick={onClose}>
       <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 sm:rounded-2xl" style={{ animation: "pop .2s ease" }} onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">{isEdit ? "Editar pedido" : "Nuevo pedido de estudio"}</h2>
+          <h2 className="text-base font-semibold text-slate-900">{isEdit ? "Editar pedido" : "Nuevo pedido de procedimiento"}</h2>
           <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100"><X size={18} /></button>
         </div>
 
@@ -942,14 +705,14 @@ function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, areaRestr
               </>
             ) : (
               <>
-                <div className="col-span-2"><label className={lbl}>Tipo de imagen</label><select className={field} value={form.modalidad} onChange={set("modalidad")}>{IMAGE_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select></div>
+                <div className="col-span-2"><label className={lbl}>Procedimiento</label><select className={field} value={form.modalidad} onChange={set("modalidad")}>{PROCEDIMIENTOS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select></div>
                 {requiereAuth(form.modalidad) && (
                   <div className="col-span-2 flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700">
-                    <ShieldAlert size={13} /> Este estudio requiere autorización administrativa antes de realizarse.
+                    <ShieldAlert size={13} /> Este procedimiento requiere autorización administrativa antes de realizarse.
                   </div>
                 )}
-                <div className="col-span-2"><label className={lbl}>Estudio solicitado *</label><input className={field} value={form.descripcion} onChange={set("descripcion")} placeholder="Ej.: Rx de tórax (F y P)" /></div>
-                <div className="col-span-2"><label className={lbl}>Diagnóstico / pregunta clínica</label><textarea rows={2} className={field} value={form.motivo} onChange={set("motivo")} placeholder="Motivo del estudio" /></div>
+                <div className="col-span-2"><label className={lbl}>Procedimiento solicitado *</label><input className={field} value={form.descripcion} onChange={set("descripcion")} placeholder="Ej.: Cinecoronariografía diagnóstica" /></div>
+                <div className="col-span-2"><label className={lbl}>Diagnóstico / pregunta clínica</label><textarea rows={2} className={field} value={form.motivo} onChange={set("motivo")} placeholder="Motivo del procedimiento" /></div>
                 <label className="col-span-2 flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={form.conContraste} onChange={set("conContraste")} className="h-4 w-4 rounded border-slate-300" /> Requiere contraste</label>
                 <label className="col-span-2 flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={form.aislamiento} onChange={set("aislamiento")} className="h-4 w-4 rounded border-slate-300" /> Paciente en aislamiento (requiere precauciones)</label>
               </>
@@ -990,12 +753,10 @@ export default function App() {
   /* UI */
   const [role, setRole] = useState("imaging");
   const [service, setService] = useState(SECTORES[0]);
-  const [typeFilter, setTypeFilter] = useState("todos");
+  const [typeFilter, setTypeFilter] = useState([]); // multi-selección: [] = todos
   const [serviceFilter, setServiceFilter] = useState("todos");
   const [query, setQuery] = useState("");
   const [showDone, setShowDone] = useState(false);
-  const [soloHabitacion, setSoloHabitacion] = useState(false);
-  const [soloAutorizacion, setSoloAutorizacion] = useState(false);
   const [modal, setModal] = useState(false);
   const [editStudy, setEditStudy] = useState(null);
   const [pantalla, setPantalla] = useState(false);
@@ -1174,15 +935,13 @@ export default function App() {
   const imagingList = useMemo(() => studies
     .filter(matchesQuery)
     .filter((s) => !scope || scope.includes(s.modalidad))
-    .filter((s) => typeFilter === "todos" || s.modalidad === typeFilter)
+    .filter((s) => typeFilter.length === 0 || typeFilter.includes(s.modalidad))
     .filter((s) => serviceFilter === "todos" || s._servicio === serviceFilter)
     .filter((s) => (showDone || !isClosed(s)) && s.estado !== "cancelado")
-    .filter((s) => !soloHabitacion || s.tipoTraslado === "habitacion")
-    .filter((s) => !soloAutorizacion || s.estado === "autorizacion_pendiente")
-    .sort(sortFn), [studies, typeFilter, serviceFilter, query, showDone, scope, soloHabitacion, soloAutorizacion]);
+    .sort(sortFn), [studies, typeFilter, serviceFilter, query, showDone, scope]);
 
   const groups = useMemo(() => {
-    let order = typeFilter === "todos" ? IMAGE_TYPES.map((t) => t.id) : [typeFilter];
+    let order = typeFilter.length === 0 ? PROCEDIMIENTOS.map((t) => t.id) : typeFilter;
     if (scope) order = order.filter((id) => scope.includes(id));
     return order.map((id) => ({ type: typeMeta(id), items: imagingList.filter((s) => s.modalidad === id) })).filter((g) => g.items.length);
   }, [imagingList, typeFilter, scope]);
@@ -1203,11 +962,11 @@ export default function App() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2.5">
             <span className="grid h-9 w-9 place-items-center rounded-lg bg-slate-900 text-white"><Hospital size={18} /></span>
-            <div className="leading-tight"><div className="font-semibold">Imágenes</div><div className="text-xs text-slate-500">Circuito de estudios · Internación</div></div>
+            <div className="leading-tight"><div className="font-semibold">Hemodinamia</div><div className="text-xs text-slate-500">Circuito de procedimientos · Internación</div></div>
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <div className="flex rounded-xl bg-slate-200/70 p-1">
-              {has("ver_imagenes") && <button className={seg(role === "imaging")} onClick={() => setRole("imaging")}><Activity size={15} /> Imágenes</button>}
+              {has("ver_imagenes") && <button className={seg(role === "imaging")} onClick={() => setRole("imaging")}><Activity size={15} /> Hemodinamia</button>}
               {has("ver_servicio") && <button className={seg(role === "clinical")} onClick={() => setRole("clinical")}><Stethoscope size={15} /> Área</button>}
               {has("gestionar_usuarios") && <button className={seg(role === "users")} onClick={() => setRole("users")}><Users size={15} /> Usuarios</button>}
               {currentUser.rol === "admin" && <button className={seg(role === "dashboard")} onClick={() => setRole("dashboard")}><BarChart3 size={15} /> Dashboard</button>}
@@ -1254,9 +1013,9 @@ export default function App() {
           {role === "imaging" ? (
             <>
               <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
-                <button onClick={() => setTypeFilter("todos")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${typeFilter === "todos" ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}>Todos</button>
-                {IMAGE_TYPES.map((t) => (
-                  <button key={t.id} onClick={() => setTypeFilter(t.id)} className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium ${typeFilter === t.id ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}><t.Icon size={12} /> {t.short}</button>
+                <button onClick={() => setTypeFilter([])} className={`rounded-md px-2.5 py-1 text-xs font-medium ${typeFilter.length === 0 ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}>Todos</button>
+                {PROCEDIMIENTOS.map((t) => (
+                  <button key={t.id} onClick={() => setTypeFilter((arr) => arr.includes(t.id) ? arr.filter((x) => x !== t.id) : [...arr, t.id])} className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium ${typeFilter.includes(t.id) ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}><t.Icon size={12} /> {t.short}</button>
                 ))}
               </div>
               <div className="relative">
@@ -1267,11 +1026,9 @@ export default function App() {
                 <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
               </div>
               <button onClick={() => setShowDone((v) => !v)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600"><Filter size={13} /> {showDone ? "Ocultar finalizados" : "Ver finalizados"}</button>
-              <button onClick={() => setSoloHabitacion((v) => !v)} className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium ${soloHabitacion ? "border-blue-300 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-600"}`}><BedDouble size={13} /> En habitación</button>
-              <button onClick={() => setSoloAutorizacion((v) => !v)} className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium ${soloAutorizacion ? "border-orange-300 bg-orange-50 text-orange-700" : "border-slate-200 bg-white text-slate-600"}`}><ShieldAlert size={13} /> Autorización pendiente</button>
             </>
           ) : role === "clinical" && has("pedir_estudio") ? (
-            <button onClick={() => { setEditStudy(null); setModal(true); }} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"><Plus size={16} /> Nuevo estudio</button>
+            <button onClick={() => { setEditStudy(null); setModal(true); }} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"><Plus size={16} /> Nuevo procedimiento</button>
           ) : null}
         </div>
         )}
@@ -1316,7 +1073,7 @@ export default function App() {
             <ClinicalSection title="Pendientes" items={myBy(["solicitado", "programado", "traslado_solicitado"])} {...{ role, now, perms, currentUser, todos: studies, advance, revert, authorize, onEdit: abrirEdicion, onAvisado: avisado, cancel }} />
             <ClinicalSection title="En proceso" items={myBy(["en_proceso"])} {...{ role, now, perms, currentUser, todos: studies, advance, revert, authorize, onEdit: abrirEdicion, onAvisado: avisado, cancel }} />
             <ClinicalSection title="Finalizados" items={myBy(["realizado"])} {...{ role, now, perms, currentUser, todos: studies, advance, revert, authorize, onEdit: abrirEdicion, onAvisado: avisado, cancel }} />
-            {myStudies.length === 0 && <EmptyState text={`${service} no tiene estudios cargados. Agregá el primero con "Nuevo estudio".`} />}
+            {myStudies.length === 0 && <EmptyState text={`${service} no tiene procedimientos cargados. Agregá el primero con "Nuevo procedimiento".`} />}
           </div>
         )}
       </main>
@@ -1451,8 +1208,6 @@ const fmtDur = (ms) => {
 const prom = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
 function DashboardView({ studies }) {
-  const [desde, setDesde] = useState("");
-  const [hasta, setHasta] = useState("");
   const activos = studies.filter((s) => STATUS[s.estado]?.active).length;
   const realizados = studies.filter((s) => s.estado === "realizado");
   const cancelados = studies.filter((s) => s.estado === "cancelado").length;
@@ -1470,7 +1225,7 @@ function DashboardView({ studies }) {
   });
   const maxEtapa = Math.max(1, ...etapaProm.map((e) => e.ms));
 
-  const porModalidad = IMAGE_TYPES.map((t) => ({ label: t.short, n: studies.filter((s) => s.modalidad === t.id).length })).filter((x) => x.n > 0);
+  const porModalidad = PROCEDIMIENTOS.map((t) => ({ label: t.short, n: studies.filter((s) => s.modalidad === t.id).length })).filter((x) => x.n > 0);
   const maxMod = Math.max(1, ...porModalidad.map((x) => x.n));
 
   const sectores = {};
@@ -1484,26 +1239,20 @@ function DashboardView({ studies }) {
   const rojoFuera = rojoInicio.filter((v) => v > 30 * 60000).length;
 
   const exportarCSV = () => {
-    const cols = ["HC", "Paciente", "Obra social", "Área", "Modalidad", "Estudio", "Aislamiento", "Prioridad", "Solicitado", "Autorizado", "Traslado pedido", "Inicio", "Realizado", "En autorización (min)", "En espera (min)", "En traslado (min)", "En proceso (min)"];
+    const cols = ["HC", "Paciente", "Obra social", "Área", "Procedimiento", "Estudio", "Prioridad", "Solicitado", "Autorizado", "Traslado pedido", "Inicio", "Realizado", "En autorización (min)", "En espera (min)", "En traslado (min)", "En proceso (min)"];
     const min = (ms) => (ms ? Math.round(ms / 60000) : "");
     const fmt = (ts) => (ts ? new Date(ts).toLocaleString("es-AR") : "");
     const horaDe = (s, estado) => { const e = (s.historial || []).find((h) => h.estado === estado); return e ? e.ts : null; };
-    const desdeTs = desde ? new Date(desde + "T00:00:00").getTime() : null;
-    const hastaTs = hasta ? new Date(hasta + "T23:59:59").getTime() : null;
-    const enRango = studies.filter((s) => {
-      const t = new Date(s.fechaSolicitud).getTime();
-      return (desdeTs == null || t >= desdeTs) && (hastaTs == null || t <= hastaTs);
-    });
-    const filas = enRango.map((s) => {
+    const filas = studies.map((s) => {
       const d = duracionesEtapa(s);
       const autorizado = s.historial?.[0]?.estado === "autorizacion_pendiente" ? horaDe(s, "solicitado") : null;
-      return [s._paciente.hc, s._paciente.nombreCompleto, s._paciente.obraSocial, s._servicio, typeMeta(s.modalidad)?.label, s.descripcion, s.aislamiento ? "Sí" : "No", PRIORITIES[s.prioridad]?.label, fmt(s.fechaSolicitud), fmt(autorizado), fmt(horaDe(s, "traslado_solicitado")), fmt(horaDe(s, "en_proceso")), fmt(horaDe(s, "realizado")), min(d.autorizacion_pendiente), min(d.solicitado), min(d.traslado_solicitado), min(d.en_proceso)];
+      return [s._paciente.hc, s._paciente.nombreCompleto, s._paciente.obraSocial, s._servicio, typeMeta(s.modalidad)?.label, s.descripcion, PRIORITIES[s.prioridad]?.label, fmt(s.fechaSolicitud), fmt(autorizado), fmt(horaDe(s, "traslado_solicitado")), fmt(horaDe(s, "en_proceso")), fmt(horaDe(s, "realizado")), min(d.autorizacion_pendiente), min(d.solicitado), min(d.traslado_solicitado), min(d.en_proceso)];
     });
     const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const csv = [cols, ...filas].map((r) => r.map(esc).join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "imagenes-export.csv"; a.click(); URL.revokeObjectURL(url);
+    const a = document.createElement("a"); a.href = url; a.download = "hemodinamia-export.csv"; a.click(); URL.revokeObjectURL(url);
   };
 
   const KPI = ({ label, value, sub }) => (
@@ -1528,12 +1277,7 @@ function DashboardView({ studies }) {
           <h2 className="text-lg font-semibold text-slate-900">Panel de gestión</h2>
           <p className="text-sm text-slate-500">Indicadores sobre el historial registrado.</p>
         </div>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1 text-xs text-slate-500">Desde <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-blue-400" /></label>
-          <label className="flex items-center gap-1 text-xs text-slate-500">Hasta <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-blue-400" /></label>
-          {(desde || hasta) && <button onClick={() => { setDesde(""); setHasta(""); }} className="text-xs text-slate-400 underline">limpiar</button>}
-          <button onClick={exportarCSV} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"><BarChart3 size={15} /> Exportar CSV</button>
-        </div>
+        <button onClick={exportarCSV} className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"><BarChart3 size={15} /> Exportar CSV</button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -1555,7 +1299,7 @@ function DashboardView({ studies }) {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="mb-3 text-sm font-semibold text-slate-700">Volumen por modalidad</h3>
+          <h3 className="mb-3 text-sm font-semibold text-slate-700">Volumen por procedimiento</h3>
           <div className="space-y-2.5">
             {porModalidad.length === 0 ? <p className="text-sm text-slate-400">Sin datos.</p> : porModalidad.map((m) => <Barra key={m.label} label={m.label} n={m.n} max={maxMod} />)}
           </div>
@@ -1586,8 +1330,8 @@ function LoginScreen({ onLogin }) {
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center text-center">
           <span className="grid h-14 w-14 place-items-center rounded-2xl bg-slate-900 text-white"><Hospital size={28} /></span>
-          <h1 className="mt-3 text-xl font-bold text-slate-900">Imágenes — Worklist</h1>
-          <p className="text-sm text-slate-500">Circuito de estudios por imágenes de internación</p>
+          <h1 className="mt-3 text-xl font-bold text-slate-900">Hemodinamia — Worklist</h1>
+          <p className="text-sm text-slate-500">Circuito de procedimientos de hemodinamia · Internación</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <button onClick={() => onLogin("u6")} className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-800"><Lock size={15} /> Iniciar sesión con el sistema del hospital</button>
