@@ -3,6 +3,7 @@ import { X, Search, CheckCircle2, AlertTriangle, ShieldAlert, BedDouble, Stethos
 import { SECTORES, CASOS_CODIGO_ROJO, PROCEDIMIENTOS, PRIORITIES, TRASLADOS } from '../../utils/constants';
 import { typeMeta, opcionesTraslado, requiereAuth } from '../../utils/helpers';
 import type { Pedido } from '../../types';
+import { API_URL } from '../../services/api';
 
 const FONT_MONO = "'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace";
 
@@ -196,7 +197,7 @@ export function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, pa
               <label className={lbl}>Receta Digital (Opcional - Imagen o PDF)</label>
               {isEdit && editStudy?.recetaDigitalUrl && (
                 <div className="mb-2 flex items-center gap-2">
-                  <a href={editStudy.recetaDigitalUrl.startsWith('http') ? editStudy.recetaDigitalUrl : `http://localhost:3000${editStudy.recetaDigitalUrl}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline">
+                  <a href={editStudy.recetaDigitalUrl.startsWith('http') ? editStudy.recetaDigitalUrl : `${API_URL}${editStudy.recetaDigitalUrl}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline">
                     Ver receta cargada actualmente
                   </a>
                   <span className="text-xs text-slate-500">(subir un archivo nuevo la reemplazará)</span>

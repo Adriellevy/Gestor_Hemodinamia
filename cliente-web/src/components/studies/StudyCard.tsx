@@ -8,6 +8,7 @@ import { typeMeta, waitMins, waitText, linkWhatsApp, fmtHora } from '../../utils
 import { PRIORITIES, STATUS, TRASLADOS, ESTADOS_PRE_TRASLADO, ROLES } from '../../utils/constants';
 import { Badge } from '../ui/Badge';
 import type { Pedido, Usuario } from '../../types';
+import { API_URL } from '../../services/api';
 
 const FONT_MONO = "'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace";
 
@@ -230,7 +231,7 @@ export function StudyCard({
                     <button onClick={() => setZoom(z => Math.min(5, z + 0.2))} className="grid h-6 w-6 place-items-center rounded bg-white text-slate-600 shadow-sm hover:bg-slate-50" title="Acercar">+</button>
                   </div>
                 )}
-                <a href={study.recetaDigitalUrl.startsWith('http') ? study.recetaDigitalUrl : `http://localhost:3000${study.recetaDigitalUrl}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline">
+                <a href={study.recetaDigitalUrl.startsWith('http') ? study.recetaDigitalUrl : `${API_URL}${study.recetaDigitalUrl}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline">
                   Abrir en pestaña nueva
                 </a>
                 <button onClick={cerrarModal} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={18} /></button>
@@ -239,10 +240,10 @@ export function StudyCard({
             <div className="relative flex-1 bg-slate-100 p-4 overflow-auto flex items-center justify-center">
               {study.recetaDigitalUrl.match(/\.(jpeg|jpg|gif|png)$/i) ? (
                 <div style={{ transform: `scale(${zoom})`, transformOrigin: 'center center', transition: 'transform 0.1s ease-out' }} className="h-full w-full flex items-center justify-center min-h-max min-w-max">
-                  <img src={study.recetaDigitalUrl.startsWith('http') ? study.recetaDigitalUrl : `http://localhost:3000${study.recetaDigitalUrl}`} alt="Receta" className="max-h-full max-w-full object-contain shadow-sm bg-white" />
+                  <img src={study.recetaDigitalUrl.startsWith('http') ? study.recetaDigitalUrl : `${API_URL}${study.recetaDigitalUrl}`} alt="Receta" className="max-h-full max-w-full object-contain shadow-sm bg-white" />
                 </div>
               ) : (
-                <iframe src={study.recetaDigitalUrl.startsWith('http') ? study.recetaDigitalUrl : `http://localhost:3000${study.recetaDigitalUrl}`} className="h-full w-full rounded-lg border border-slate-200 bg-white shadow-sm" title="Receta Digital" />
+                <iframe src={study.recetaDigitalUrl.startsWith('http') ? study.recetaDigitalUrl : `${API_URL}${study.recetaDigitalUrl}`} className="h-full w-full rounded-lg border border-slate-200 bg-white shadow-sm" title="Receta Digital" />
               )}
             </div>
           </div>

@@ -14,6 +14,7 @@ import { UsersPanel } from "./components/views/UsersPanel";
 import { LoginScreen } from "./components/views/LoginScreen";
 import { Header } from "./components/layout/Header";
 import type { Pedido } from "./types";
+import { API_URL } from "./services/api";
 
 const FONT_SANS = "'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif";
 
@@ -171,7 +172,7 @@ export default function App() {
         const formData = new FormData();
         formData.append('file', file);
         const token = localStorage.getItem('auth_token');
-        const res = await fetch(`http://localhost:3000/pedidos/${newPedido.id}/receta`, {
+        const res = await fetch(`${API_URL}/pedidos/${newPedido.id}/receta`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -217,7 +218,7 @@ export default function App() {
           const formData = new FormData();
           formData.append('file', file);
           const token = localStorage.getItem('auth_token');
-          const res = await fetch(`http://localhost:3000/pedidos/${id}/receta`, {
+          const res = await fetch(`${API_URL}/pedidos/${id}/receta`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`
