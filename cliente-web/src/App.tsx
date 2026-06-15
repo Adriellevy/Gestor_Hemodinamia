@@ -36,12 +36,23 @@ export default function App() {
   const [now, setNow] = useState(Date.now());
   
   const [query, setQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState("todos");
+  const [typeFilters, setTypeFilters] = useState<string[]>([]);
+  const [filterMode, setFilterMode] = useState<"AND" | "OR">("OR");
   const [serviceFilter, setServiceFilter] = useState("todos");
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [showDone, setShowDone] = useState(false);
   const [modal, setModal] = useState(false);
   const [editStudy, setEditStudy] = useState<Pedido | null>(null);
+
+  const toggleTypeFilter = (id: string) => {
+    if (id === "todos") {
+      setTypeFilters([]);
+    } else {
+      setTypeFilters((prev) => 
+        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      );
+    }
+  };
 
   // Initialize data and clock
   useEffect(() => {
@@ -257,7 +268,21 @@ export default function App() {
   const imagingList = useMemo(() => studies
     .filter(matchesQuery)
     .filter((s) => !scope || scope.includes(s.modalidad))
-    .filter((s) => typeFilter === "todos" || s.modalidad === typeFilter)
+    .filter((s) => {
+      if (typeFilters.length === 0) return true;
+      if (!typeFilters.includes(s.modalidad)) return false;
+      if (filterMode === "AND") {
+        return typeFilters.every((t) =>
+          studies.some(
+            (x) =>
+              x.internacionId === s.internacionId &&
+              x.modalidad === t &&
+              x.estado !== "cancelado"
+          )
+        );
+      }
+      return true;
+    })
     .filter((s) => serviceFilter === "todos" || s._servicio === serviceFilter)
     .filter((s) => {
       if (statusFilters.length === 0) return true;
@@ -267,13 +292,13 @@ export default function App() {
       return ok;
     })
     .filter((s) => (showDone || !isClosed(s)) && s.estado !== "cancelado")
-    .sort(sortFn), [studies, typeFilter, serviceFilter, statusFilters, query, showDone, scope]);
+    .sort(sortFn), [studies, typeFilters, filterMode, serviceFilter, statusFilters, query, showDone, scope]);
 
   const groups = useMemo(() => {
-    let order = typeFilter === "todos" ? PROCEDIMIENTOS.map((t) => t.id) : [typeFilter];
+    let order = typeFilters.length === 0 ? PROCEDIMIENTOS.map((t) => t.id) : typeFilters;
     if (scope) order = order.filter((id) => scope.includes(id));
     return order.map((id) => ({ type: typeMeta(id), items: imagingList.filter((s) => s.modalidad === id) })).filter((g) => g.items && g.items.length);
-  }, [imagingList, typeFilter, scope]);
+  }, [imagingList, typeFilters, scope]);
 
   const myStudies = useMemo(() => studies.filter((s) => s._servicio === service && matchesQuery(s)).sort(sortFn), [studies, service, query]);
   const myBy = (estados: string[]) => myStudies.filter((s) => estados.includes(s.estado));
@@ -325,11 +350,31 @@ export default function App() {
             {role === "imaging" ? (
               <>
                 <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
-                  <button onClick={() => setTypeFilter("todos")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${typeFilter === "todos" ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}>Todos</button>
+                  <button onClick={() => toggleTypeFilter("todos")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${typeFilters.length === 0 ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}>Todos</button>
                   {PROCEDIMIENTOS.map((t) => (
-                    <button key={t.id} onClick={() => setTypeFilter(t.id)} className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium ${typeFilter === t.id ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}><t.Icon size={12} /> {t.short}</button>
+                    <button key={t.id} onClick={() => toggleTypeFilter(t.id)} className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium ${typeFilters.includes(t.id) ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}><t.Icon size={12} /> {t.short}</button>
                   ))}
                 </div>
+
+                {typeFilters.length > 1 && (
+                  <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1" style={{ animation: "fade .2s ease" }}>
+                    <span className="px-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Lógica:</span>
+                    <button 
+                      onClick={() => setFilterMode("OR")} 
+                      className={`rounded-md px-2.5 py-1 text-xs font-medium ${filterMode === "OR" ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}
+                      title="Mostrar pacientes con cualquiera de los estudios seleccionados"
+                    >
+                      Cualquiera
+                    </button>
+                    <button 
+                      onClick={() => setFilterMode("AND")} 
+                      className={`rounded-md px-2.5 py-1 text-xs font-medium ${filterMode === "AND" ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}
+                      title="Mostrar solo pacientes que tengan todos los estudios seleccionados"
+                    >
+                      Ambos (AND)
+                    </button>
+                  </div>
+                )}
                 <div className="relative">
                   <select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)} className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-medium text-slate-600 outline-none focus:border-blue-400">
                     <option value="todos">Todas las áreas</option>
