@@ -27,13 +27,13 @@ export function Header({
             <Hospital size={18} />
           </span>
           <div className="leading-tight">
-            <div className="font-semibold">Imágenes</div>
+            <div className="font-semibold">Hemodinamia</div>
             <div className="text-xs text-slate-500">Circuito de estudios · Internación</div>
           </div>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <div className="flex rounded-xl bg-slate-200/70 p-1">
-            {hasPermission("ver_imagenes") && <button className={seg(role === "imaging")} onClick={() => setRole("imaging")}><Activity size={15} /> Imágenes</button>}
+            {hasPermission("ver_imagenes") && <button className={seg(role === "imaging")} onClick={() => setRole("imaging")}><Activity size={15} /> Hemodinamia</button>}
             {hasPermission("ver_servicio") && <button className={seg(role === "clinical")} onClick={() => setRole("clinical")}><Stethoscope size={15} /> Área de internación</button>}
             {hasPermission("gestionar_usuarios") && <button className={seg(role === "users")} onClick={() => setRole("users")}><Users size={15} /> Usuarios</button>}
             {currentUser.rol === "admin" && <button className={seg(role === "dashboard")} onClick={() => setRole("dashboard")}><BarChart3 size={15} /> Dashboard</button>}

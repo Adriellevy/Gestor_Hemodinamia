@@ -109,7 +109,7 @@ export function DashboardView({ studies: allStudies }: { studies: Pedido[] }) {
     const csv = [cols, ...filas].map((r) => r.map(esc).join(";")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "imagenes-export.csv"; a.click(); URL.revokeObjectURL(url);
+    const a = document.createElement("a"); a.href = url; a.download = "hemodinamia-export.csv"; a.click(); URL.revokeObjectURL(url);
   };
 
   const KPI = ({ label, value, sub }: { label: string, value: string | number, sub?: string }) => (

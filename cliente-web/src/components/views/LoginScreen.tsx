@@ -29,7 +29,7 @@ export function LoginScreen() {
             Gestoy
           </h2>
           <p className="mt-2 text-sm font-medium text-slate-500">
-            Módulo de Gestión de Imágenes
+            Módulo de Gestión de Hemodinamia
           </p>
         </div>
 
