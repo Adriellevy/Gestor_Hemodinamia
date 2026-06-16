@@ -287,7 +287,6 @@ export default function App() {
     .filter((s) => {
       if (statusFilters.length === 0) return true;
       let ok = true;
-      if (statusFilters.includes("habitacion") && s.tipoTraslado !== "habitacion") ok = false;
       if (statusFilters.includes("autorizacion_pendiente") && s.estado !== "autorizacion_pendiente") ok = false;
       return ok;
     })
@@ -383,7 +382,6 @@ export default function App() {
                 </div>
                 <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
                   <button onClick={() => setStatusFilters([])} className={`rounded-md px-2.5 py-1 text-xs font-medium ${statusFilters.length === 0 ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}>Todos</button>
-                  <button onClick={() => setStatusFilters(p => p.includes("habitacion") ? p.filter(x => x !== "habitacion") : [...p, "habitacion"])} className={`rounded-md px-2.5 py-1 text-xs font-medium ${statusFilters.includes("habitacion") ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}>En habitación</button>
                   <button onClick={() => setStatusFilters(p => p.includes("autorizacion_pendiente") ? p.filter(x => x !== "autorizacion_pendiente") : [...p, "autorizacion_pendiente"])} className={`rounded-md px-2.5 py-1 text-xs font-medium ${statusFilters.includes("autorizacion_pendiente") ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}>Esperando autorización</button>
                 </div>
                 <button onClick={() => {
