@@ -40,7 +40,7 @@ export function BoardView({ studies, now, onExit }: BoardViewProps) {
     }
   });
 
-  const COLS = "1fr 2fr 1.6fr 2.2fr 0.9fr 1.2fr 0.9fr";
+  const COLS = "1fr 1.9fr 1.5fr 2fr 0.8fr 0.85fr 1.1fr 0.85fr";
   const activos = studies
     .filter((s) => STATUS[s.estado]?.active && (filtro.length === 0 || filtro.some((fid) => chips.find((c) => c.id === fid)?.match.includes(s.modalidad))))
     .sort((a, b) => (PRIORITIES[a.prioridad]?.rank - PRIORITIES[b.prioridad]?.rank) || (a.fechaSolicitud - b.fechaSolicitud));
@@ -50,11 +50,13 @@ export function BoardView({ studies, now, onExit }: BoardViewProps) {
   return (
     <div className="fixed inset-0 flex flex-col bg-slate-950 text-slate-100" style={{ fontFamily: FONT_SANS, zIndex: 60 }}>
       <div className="flex items-center justify-between border-b border-slate-800 px-8 py-4">
-        <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-lg bg-white text-slate-900"><Hospital size={22} /></span>
+        <div className="flex items-center gap-4">
+          <div className="flex h-11 items-center rounded-lg bg-white px-2.5 py-1 shadow">
+            <img src="/Logo Suma_Care.png" alt="Suma Care" className="h-full w-auto object-contain" />
+          </div>
           <div>
-            <div className="text-2xl font-bold tracking-tight">Hemodinamia — Cola de procedimientos</div>
-            <div className="text-sm text-slate-400">{activos.length} en cola{rojos > 0 ? ` · ${rojos} código rojo` : ""}</div>
+            <div className="text-2xl font-bold tracking-tight">Suma Care — Cola de procedimientos</div>
+            <div className="text-sm text-slate-400">{activos.length} en cola{rojos > 0 ? ` · ${rojos} en emergencia` : ""}</div>
           </div>
         </div>
         <div className="flex items-center gap-6">
@@ -68,13 +70,13 @@ export function BoardView({ studies, now, onExit }: BoardViewProps) {
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 px-8 py-2.5">
         <button onClick={() => setFiltro([])} className={`rounded-lg px-3 py-1 text-sm font-medium ${filtro.length === 0 ? "bg-white text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>Todas</button>
         {chips.map((tp) => (
-          <button key={tp.id} onClick={() => setFiltro([tp.id])} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-sm font-medium ${filtro.includes(tp.id) ? "bg-white text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>
+          <button key={tp.id} onClick={() => setFiltro((arr) => arr.includes(tp.id) ? arr.filter((x) => x !== tp.id) : [...arr, tp.id])} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-sm font-medium ${filtro.includes(tp.id) ? "bg-white text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>
             <tp.Icon size={14} /> {tp.short}
           </button>
         ))}
       </div>
       <div className="gap-4 border-b border-slate-800 px-8 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500" style={{ display: "grid", gridTemplateColumns: COLS }}>
-        <div>Estudio</div><div>Paciente</div><div>Origen</div><div>Detalle</div><div>Solicitado</div><div>Estado</div><div className="text-right">Espera</div>
+        <div>Estudio</div><div>Paciente</div><div>Origen</div><div>Detalle</div><div>Sala</div><div>Solicitado</div><div>Estado</div><div className="text-right">Espera</div>
       </div>
       <div className="flex-1 overflow-y-auto">
         {activos.length === 0 && <div className="grid h-full place-items-center text-2xl text-slate-600">Sin estudios en cola</div>}
@@ -86,7 +88,7 @@ export function BoardView({ studies, now, onExit }: BoardViewProps) {
           const baseEspera = reqAuth ? (s.historial?.find((h) => h.estado !== "autorizacion_pendiente")?.ts ?? null) : s.fechaSolicitud;
           const mins = baseEspera != null ? waitMins(baseEspera, now) : null;
           const overdue = baseEspera != null && pr.umbralRojo != null && mins != null && mins > pr.umbralRojo;
-          const p = s._paciente || { nombreCompleto: "—", hc: "—", cama: "—" };
+          const p = s._paciente || { nombreCompleto: "—", hc: "—", cama: "—", obraSocial: undefined };
 
           return (
             <div key={s.id} className={`gap-4 items-center border-b border-slate-800 px-8 py-3 ${i % 2 ? "bg-slate-900" : ""}`} style={{ display: "grid", gridTemplateColumns: COLS }}>
@@ -97,10 +99,12 @@ export function BoardView({ studies, now, onExit }: BoardViewProps) {
               <div className="truncate text-lg">
                 <span className="font-semibold">{p.nombreCompleto}</span>
                 <span className="ml-2 text-sm text-slate-400" style={{ fontFamily: FONT_MONO }}>HC {p.hc}</span>
-                {s.prioridad === "urgente" && <span className="ml-2 inline-block rounded bg-red-600 px-1.5 py-0.5 text-xs font-bold animate-pulse">CÓDIGO ROJO</span>}
+                {s.prioridad === "urgente" && <span className="ml-2 inline-block rounded bg-red-600 px-1.5 py-0.5 text-xs font-bold animate-pulse">EMERGENCIA</span>}
+                {s.aislamiento && <span className="ml-2 inline-block rounded bg-amber-500 px-1.5 py-0.5 text-xs font-bold text-slate-900">AISLAMIENTO</span>}
               </div>
-              <div className="truncate text-base text-slate-300">{s._servicio || "—"} · {p.cama}</div>
-              <div className="truncate text-base text-slate-300">{s.descripcion}</div>
+              <div className="truncate text-base text-slate-300">{s._servicio || "—"} · {p.cama} · OS {p.obraSocial || "—"}</div>
+              <div className="truncate text-base text-slate-300">{s.descripcion}{(s.medicoRealiza || s.enfermeroRealiza) && <span className="block text-sm text-slate-500">{[s.medicoRealiza, s.enfermeroRealiza].filter(Boolean).join(" · ")}</span>}</div>
+              <div className="truncate text-base font-semibold text-slate-200">{s.sala || "—"}</div>
               <div className="text-base text-slate-400 tabular-nums" style={{ fontFamily: FONT_MONO }}>{fmtHora(s.fechaSolicitud)}</div>
               <div className={`text-lg font-bold ${e.cls}`}>{e.label}</div>
               <div className={`text-right text-2xl font-bold tabular-nums ${overdue ? "text-red-400" : "text-slate-200"}`} style={{ fontFamily: FONT_MONO }}>{baseEspera != null ? waitText(baseEspera, now) : "—"}</div>

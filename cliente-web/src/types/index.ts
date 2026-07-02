@@ -55,6 +55,11 @@ export interface Pedido {
   historial?: any[];
   avisoPendiente?: string;
   recetaDigitalUrl?: string;
+  medicoRealiza?: string;
+  enfermeroRealiza?: string;
+  sala?: string;
+  ordenMedica?: { nombre: string; datos: string } | null;
+  camaGuardia?: string;
   // Propiedades hidratadas por el store
   _paciente?: {
     nombreCompleto: string;

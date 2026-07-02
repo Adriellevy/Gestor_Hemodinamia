@@ -17,6 +17,7 @@ interface AppState {
   fetchData: () => Promise<void>;
   createPedido: (pedido: Omit<Pedido, 'id'>) => Promise<Pedido | undefined>;
   updatePedido: (id: string, updates: Partial<Pedido>) => Promise<void>;
+  asignarRecurso: (id: string, campo: 'medicoRealiza' | 'enfermeroRealiza' | 'sala', valor: string) => Promise<void>;
   cambiarEstadoPedido: (id: string, estado: string, userId: string) => Promise<void>;
   createPaciente: (paciente: Omit<Paciente, 'id'> | Paciente) => Promise<void>;
   createInternacion: (internacion: Omit<Internacion, 'id'> | Internacion) => Promise<void>;
@@ -119,6 +120,18 @@ export const useStore = create<AppState>((set, get) => ({
       }));
     } catch (error) {
       console.error('Error updating pedido:', error);
+    }
+  },
+
+  asignarRecurso: async (id, campo, valor) => {
+    try {
+      const updates = { [campo]: valor };
+      const updatedPedido = await api.updatePedido(id, updates);
+      set((state) => ({
+        pedidos: state.pedidos.map((p) => (p.id === id ? updatedPedido : p)),
+      }));
+    } catch (error) {
+      console.error('Error assigning recurso:', error);
     }
   },
   

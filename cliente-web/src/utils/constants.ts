@@ -1,17 +1,20 @@
-import { HeartPulse, Activity, Stethoscope, Heart, Scan, Zap, Brain, Waves } from 'lucide-react';
+import { HeartPulse, Activity, Stethoscope, Heart, Scan, Zap, Brain, Waves, Gauge, Syringe, Cpu } from 'lucide-react';
 
-export const PROCEDIMIENTOS = [
-  { id: "ccg",            label: "Cinecoronariografía",        short: "CCG",      dicom: "XA", requiereAutorizacion: true,  Icon: HeartPulse,  badge: "bg-rose-50 text-rose-700 border-rose-200" },
-  { id: "atc",            label: "Angioplastia coronaria",     short: "ATC",      dicom: "XA", requiereAutorizacion: true,  Icon: Activity,    badge: "bg-red-50 text-red-700 border-red-200" },
-  { id: "cateterismo",    label: "Cateterismo derecho",        short: "Cat. D",   dicom: "XA", requiereAutorizacion: true,  Icon: Stethoscope, badge: "bg-sky-50 text-sky-700 border-sky-200" },
-  { id: "valvulas",       label: "Válvulas",                   short: "Válvulas", dicom: "XA", requiereAutorizacion: true,  Icon: Heart,       badge: "bg-teal-50 text-teal-700 border-teal-200" },
-  { id: "endoprotesis",   label: "Endoprótesis",               short: "Endopr.",  dicom: "XA", requiereAutorizacion: true,  Icon: Scan,        badge: "bg-amber-50 text-amber-700 border-amber-200" },
-  { id: "efa",            label: "Estudio electrofisiológico", short: "EEF",      dicom: "XA", requiereAutorizacion: true,  Icon: Zap,         badge: "bg-indigo-50 text-indigo-700 border-indigo-200" },
-  { id: "neuro",          label: "Neurointervencionismo",      short: "Neuro",    dicom: "XA", requiereAutorizacion: true,  Icon: Brain,       badge: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200" },
-  { id: "flebologia",     label: "Flebología",                 short: "Flebo.",   dicom: "XA", requiereAutorizacion: true,  Icon: Waves,       badge: "bg-cyan-50 text-cyan-700 border-cyan-200" },
+export const PROCEDIMIENTOS: any[] = [
+  { id: "ccg", label: "Cinecoronariografía", short: "CCG", dicom: "XA", requiereAutorizacion: true, Icon: HeartPulse, badge: "bg-rose-50 text-rose-700 border-rose-200" },
+  { id: "atc", label: "Angioplastia coronaria", short: "ATC", dicom: "XA", requiereAutorizacion: true, Icon: Activity, badge: "bg-red-50 text-red-700 border-red-200" },
+  { id: "cateterismo", label: "Cateterismo derecho", short: "Cat. D", dicom: "XA", requiereAutorizacion: true, Icon: Stethoscope, badge: "bg-sky-50 text-sky-700 border-sky-200" },
+  { id: "valvulas", label: "Válvulas", short: "Válvulas", dicom: "XA", requiereAutorizacion: true, Icon: Heart, badge: "bg-teal-50 text-teal-700 border-teal-200" },
+  { id: "endoprotesis", label: "Endoprótesis", short: "Endopr.", dicom: "XA", requiereAutorizacion: true, Icon: Scan, badge: "bg-amber-50 text-amber-700 border-amber-200" },
+  { id: "efa", label: "Estudio electrofisiológico", short: "EEF", dicom: "XA", requiereAutorizacion: true, Icon: Zap, badge: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+  { id: "neuro", label: "Neurointervencionismo", short: "Neuro", dicom: "XA", requiereAutorizacion: true, Icon: Brain, badge: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200" },
+  { id: "flebologia", label: "Flebología", short: "Flebo.", dicom: "XA", requiereAutorizacion: true, Icon: Waves, badge: "bg-cyan-50 text-cyan-700 border-cyan-200" },
+  { id: "bcia", label: "Balón de contrapulsación (BCIA)", short: "BCIA", dicom: "XA", requiereAutorizacion: true, soloEmergencia: true, Icon: Gauge, badge: "bg-orange-50 text-orange-700 border-orange-200" },
+  { id: "pericardiocentesis", label: "Pericardiocentesis", short: "Pericard.", dicom: "XA", requiereAutorizacion: true, soloEmergencia: true, Icon: Syringe, badge: "bg-purple-50 text-purple-700 border-purple-200" },
+  { id: "marcapasos", label: "Marcapasos transitorio", short: "MP transit.", dicom: "XA", requiereAutorizacion: true, soloEmergencia: true, Icon: Cpu, badge: "bg-lime-50 text-lime-700 border-lime-200" },
 ];
 
-export const PERMISOS = {
+export const PERMISOS: Record<string, string> = {
   pedir_estudio: "Solicitar procedimientos",
   cancelar_pedido: "Cancelar pedidos",
   autorizar: "Autorización administrativa",
@@ -21,14 +24,21 @@ export const PERMISOS = {
   ver_imagenes: "Ver worklist de hemodinamia",
   ver_servicio: "Ver lista del servicio",
   gestionar_usuarios: "Gestionar usuarios",
+  asignar: "Asignar médico, enfermero y sala",
 };
 
-export const ROLES = {
+export const ROLES: Record<string, any> = {
   medico: { label: "Médico solicitante", color: "#2563eb", permisos: ["pedir_estudio", "cancelar_pedido", "ver_servicio", "ver_imagenes"] },
-  tecnico: { label: "Personal de hemodinamia", color: "#0d9488", permisos: ["iniciar", "finalizar", "retroceder", "ver_imagenes"] },
+  tecnico: { label: "Personal de hemodinamia", color: "#0d9488", permisos: ["iniciar", "finalizar", "retroceder", "asignar", "ver_imagenes"] },
   administrativo: { label: "Administrativo", color: "#ea580c", permisos: ["autorizar", "ver_imagenes"] },
+  jefe_enfermeria: { label: "Jefe de enfermería", color: "#0891b2", permisos: ["asignar", "ver_imagenes"] },
+  invitado: { label: "Solo visualización", color: "#64748b", permisos: ["ver_imagenes"] },
   admin: { label: "Admin general", color: "#7c3aed", permisos: Object.keys(PERMISOS) },
 };
+
+export const MEDICOS_HEMO = ["Dr. Álvarez", "Dra. Bianchi", "Dr. Costa", "Dra. Duarte", "Dr. Esposito"];
+export const ENFERMEROS_HEMO = ["Enf. Funes", "Enf. Gómez", "Enf. Herrera", "Enf. Ibáñez"];
+export const SALAS_HEMO = ["Sala 1", "Sala 2", "Sala 3", "Sala 4", "Sala EEF"];
 
 export const SECTORES = [
   "Guardia", "UCO", "Recuperación cardiovascular", "Telemetría",
@@ -41,15 +51,18 @@ export const SECTORES = [
 ];
 
 export const PRIORITIES: Record<string, any> = {
-  urgente: { label: "Urgente - código rojo", short: "Código rojo", badge: "bg-red-50 text-red-700 border-red-200", bar: "#dc2626", rank: 0, umbralRojo: 90, umbralAlerta: 60 },
-  prioritario: { label: "Prioridad", short: "Prioridad", badge: "bg-amber-50 text-amber-700 border-amber-200", bar: "#d97706", rank: 1, umbralRojo: 120, umbralAlerta: 120 },
-  normal: { label: "Normal", short: "Normal", badge: "bg-slate-100 text-slate-600 border-slate-200", bar: "#cbd5e1", rank: 2, umbralRojo: null, umbralAlerta: null },
+  urgente: { label: "Emergencia", short: "Emergencia", badge: "bg-red-50 text-red-700 border-red-200", bar: "#dc2626", rank: 0, umbralRojo: 90, umbralAlerta: 60 },
+  prioritario: { label: "Urgencia", short: "Urgencia", badge: "bg-amber-50 text-amber-700 border-amber-200", bar: "#d97706", rank: 1, umbralRojo: 120, umbralAlerta: 120 },
+  normal: { label: "En internación", short: "En internación", badge: "bg-slate-100 text-slate-600 border-slate-200", bar: "#cbd5e1", rank: 2, umbralRojo: null, umbralAlerta: null },
 };
 
-export const CASOS_CODIGO_ROJO = [
-  { modalidad: "atc", dx: "IAM con supradesnivel del ST (STEMI)", estudio: "Angioplastia primaria", conContraste: true, tipoTraslado: "camilla" },
-  { modalidad: "atc", dx: "Shock cardiogénico", estudio: "Coronariografía + ATC de urgencia", conContraste: true, tipoTraslado: "camilla" },
-  { modalidad: "cateterismo", dx: "TEP de alto riesgo", estudio: "Trombectomía/trombólisis dirigida", conContraste: true, tipoTraslado: "camilla" },
+export const CASOS_CODIGO_ROJO: any[] = [
+  { modalidad: "atc", dx: "IAMCEST (STEMI)", estudio: "CCG + ATC primaria", conContraste: true, tipoTraslado: "camilla" },
+  { modalidad: "bcia", dx: "Shock cardiogénico / inestabilidad hemodinámica", estudio: "Colocación de BCIA", conContraste: false, tipoTraslado: "camilla" },
+  { modalidad: "pericardiocentesis", dx: "Taponamiento cardíaco", estudio: "Pericardiocentesis", conContraste: false, tipoTraslado: "camilla" },
+  { modalidad: "marcapasos", dx: "Bloqueo AV completo", estudio: "Marcapasos transitorio", conContraste: false, tipoTraslado: "camilla" },
+  { modalidad: "neuro", dx: "ACV", estudio: "Trombectomía mecánica", conContraste: true, tipoTraslado: "camilla" },
+  { modalidad: "cateterismo", dx: "TEP", estudio: "Trombectomía / trombólisis dirigida", conContraste: true, tipoTraslado: "camilla" },
 ];
 
 export const STATUS: Record<string, any> = {

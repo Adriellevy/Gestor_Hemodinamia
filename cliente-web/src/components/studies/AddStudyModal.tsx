@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, Search, CheckCircle2, AlertTriangle, ShieldAlert, BedDouble, Stethoscope } from 'lucide-react';
-import { SECTORES, CASOS_CODIGO_ROJO, PROCEDIMIENTOS, PRIORITIES, TRASLADOS } from '../../utils/constants';
+import { X, Search, CheckCircle2, AlertTriangle, ShieldAlert, BedDouble, Stethoscope, FileText, Upload } from 'lucide-react';
+import { SECTORES, CASOS_CODIGO_ROJO, PROCEDIMIENTOS, PRIORITIES, TRASLADOS, MEDICOS_HEMO } from '../../utils/constants';
 import { typeMeta, opcionesTraslado, requiereAuth } from '../../utils/helpers';
 import type { Pedido } from '../../types';
 import { API_URL } from '../../services/api';
@@ -13,14 +13,15 @@ interface AddStudyModalProps {
   onSubmit: (data: any, file?: File) => void;
   onUpdate: (id: string, data: any, file?: File) => void;
   editStudy: Pedido | null;
-  padron: any[]; 
+  padron: any[];
+  areaRestringida?: string | null;
 }
 
 const today = (y: number, mo: number, d: number) => new Date(y, mo - 1, d).toISOString();
 
-export function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, padron }: AddStudyModalProps) {
+export function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, padron, areaRestringida = null }: AddStudyModalProps) {
   const blank = {
-    hc: "", modalidad: "ccg", descripcion: "", prioridad: "normal", motivo: "", tipoTraslado: "silla", conContraste: false, casoRojo: "", aislamiento: false,
+    hc: "", modalidad: "ccg", descripcion: "", prioridad: "normal", motivo: "", tipoTraslado: "silla", conContraste: false, casoRojo: "", aislamiento: false, medicoRealiza: "", camaGuardia: "", ordenMedica: null as { nombre: string; datos: string } | null,
     manual: { apellido: "", nombre: "", dni: "", edad: "", servicio: SECTORES[0], cama: "" },
   };
   const [form, setForm] = useState(blank);
@@ -44,6 +45,9 @@ export function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, pa
         conContraste: !!editStudy.conContraste, 
         aislamiento: !!editStudy.aislamiento,
         casoRojo: idx >= 0 ? String(idx) : "",
+        medicoRealiza: editStudy.medicoRealiza || "",
+        camaGuardia: editStudy.camaGuardia || "",
+        ordenMedica: editStudy.ordenMedica ?? null,
         manual: { apellido: "", nombre: "", dni: "", edad: "", servicio: SECTORES[0], cama: "" },
       });
       setFile(undefined);
@@ -65,6 +69,16 @@ export function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, pa
   const isEdit = !!editStudy;
 
   const set = (k: string) => (e: any) => setForm((f: any) => ({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
+  const subirOrden = (e: any) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.type !== "application/pdf") { alert("La orden médica debe ser un archivo PDF."); e.target.value = ""; return; }
+    if (f.size > 2 * 1024 * 1024) { alert("El PDF supera los 2 MB. Subí una versión más liviana."); e.target.value = ""; return; }
+    const reader = new FileReader();
+    reader.onload = () => setForm((formState: any) => ({ ...formState, ordenMedica: { nombre: f.name, datos: reader.result as string } }));
+    reader.readAsDataURL(f);
+  };
+  const quitarOrden = () => setForm((f: any) => ({ ...f, ordenMedica: null }));
   const setM = (k: string) => (e: any) => setForm((f: any) => ({ ...f, manual: { ...f.manual, [k]: e.target.value } }));
   const setPrioridad = (e: any) => setForm((f: any) => e.target.value === "urgente" ? { ...f, prioridad: "urgente" } : { ...f, prioridad: e.target.value, casoRojo: "" });
   const elegirCaso = (e: any) => {
@@ -80,7 +94,7 @@ export function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, pa
   const resolved = isEdit && editStudy
     ? { hc: editStudy._paciente?.hc, apellido: editStudy._paciente?.nombreCompleto, servicio: editStudy._servicio, sector: editStudy._servicio, cama: editStudy._paciente?.cama }
     : found
-    ? { hc: found.hc, apellido: found.apellido, nombre: found.nombre, dni: found.dni, fechaNacimiento: found.fechaNacimiento, sexo: found.sexo, servicio: found.servicio, sector: found.sector, cama: found.cama }
+    ? { hc: found.hc, apellido: found.apellido, nombre: found.nombre, dni: found.dni, fechaNacimiento: found.fechaNacimiento, sexo: found.sexo, servicio: found.servicio, sector: found.sector, cama: found.servicio === "Guardia" ? (form.camaGuardia.trim() || "—") : found.cama }
     : noMatch
       ? { hc: form.hc.trim(), apellido: form.manual.apellido.trim(), nombre: form.manual.nombre.trim(), dni: form.manual.dni.trim() || "—",
           fechaNacimiento: form.manual.edad ? today(new Date().getFullYear() - Number(form.manual.edad), 1, 1) : today(1990, 1, 1),
@@ -88,7 +102,8 @@ export function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, pa
       : null;
 
   const edadDe = (fn: string) => { const d = new Date(fn), n = new Date(); let a = n.getFullYear() - d.getFullYear(); if (n.getMonth() < d.getMonth() || (n.getMonth() === d.getMonth() && n.getDate() < d.getDate())) a--; return a; };
-  const valid = resolved && resolved.apellido && form.descripcion.trim();
+  const fueraDeArea = !isEdit && areaRestringida && resolved && resolved.servicio !== areaRestringida;
+  const valid = resolved && resolved.apellido && form.descripcion.trim() && !fueraDeArea && !(found && found.servicio === "Guardia" && !form.camaGuardia.trim());
 
   const field = "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
   const lbl = "mb-1 block text-xs font-medium text-slate-500";
@@ -131,6 +146,20 @@ export function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, pa
           </div>
         )}
 
+        {found && found.servicio === "Guardia" && (
+          <div className="mb-4">
+            <label className={lbl}>Cama / Ubicación en guardia *</label>
+            <input className={field} value={form.camaGuardia} onChange={set("camaGuardia")} placeholder="Box, camilla o ubicación en guardia" />
+            <p className="mt-1 text-xs text-slate-400">En guardia la ubicación no llega desde el sistema; cargala a mano.</p>
+          </div>
+        )}
+
+        {fueraDeArea && (
+          <div className="mb-4 flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            <AlertTriangle size={13} className="mt-0.5 shrink-0" /> El paciente está en {resolved?.servicio}, fuera de tu área actual ({areaRestringida}). Cambiá tu área en el encabezado para poder pedirle estudios.
+          </div>
+        )}
+
         {noMatch && (
           <div className="mb-4">
             <div className="mb-2 flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
@@ -170,7 +199,7 @@ export function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, pa
               </>
             ) : (
               <>
-                <div className="col-span-2"><label className={lbl}>Modalidad</label><select className={field} value={form.modalidad} onChange={set("modalidad")}>{PROCEDIMIENTOS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select></div>
+                <div className="col-span-2"><label className={lbl}>Modalidad</label><select className={field} value={form.modalidad} onChange={set("modalidad")}>{PROCEDIMIENTOS.filter((t: any) => !t.soloEmergencia).map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select></div>
                 {requiereAuth(form.modalidad) && (
                   <div className="col-span-2 flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700">
                     <ShieldAlert size={13} /> Este estudio requiere autorización administrativa antes de realizarse.
@@ -183,6 +212,28 @@ export function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, pa
                   <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={form.conContraste} onChange={set("conContraste")} className="h-4 w-4 rounded border-slate-300" /> Requiere contraste</label>
                   <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={form.aislamiento} onChange={set("aislamiento")} className="h-4 w-4 rounded border-slate-300" /> Aislamiento de contacto</label>
                 </div>
+                <div className="col-span-2">
+                  <label className={lbl}>Operador propuesto (hemodinamista)</label>
+                  <select className={field} value={form.medicoRealiza} onChange={set("medicoRealiza")}><option value="">Sin asignar</option>{MEDICOS_HEMO.map((m) => <option key={m} value={m}>{m}</option>)}</select>
+                  <p className="mt-1 text-xs text-slate-400">Lo sugiere quien solicita; el equipo de hemodinamia puede cambiarlo.</p>
+                </div>
+                {requiereAuth(form.modalidad) && form.prioridad !== "urgente" && (
+                  <div className="col-span-2">
+                    <label className={lbl}>Orden médica (PDF)</label>
+                    {form.ordenMedica ? (
+                      <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                        <FileText size={13} className="text-slate-400" /> <span className="flex-1 truncate">{form.ordenMedica.nombre}</span>
+                        <button type="button" onClick={quitarOrden} className="text-slate-400 hover:text-red-600"><X size={13} /></button>
+                      </div>
+                    ) : (
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-500 transition-colors hover:border-blue-400">
+                        <Upload size={13} /> Adjuntar PDF de la orden médica
+                        <input type="file" accept="application/pdf" onChange={subirOrden} className="hidden" />
+                      </label>
+                    )}
+                    <p className="mt-1 text-xs text-slate-400">La descarga el administrativo para gestionar la autorización (opcional al cargar).</p>
+                  </div>
+                )}
               </>
             )}
             <div className="col-span-2">
@@ -211,8 +262,8 @@ export function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, pa
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Cancelar</button>
           <button disabled={!valid} onClick={() => isEdit && editStudy
-            ? onUpdate(editStudy.id, { modalidad: form.modalidad, descripcion: form.descripcion, prioridad: form.prioridad, motivo: form.motivo, tipoTraslado: form.tipoTraslado, conContraste: form.conContraste, aislamiento: form.aislamiento }, file)
-            : onSubmit({ paciente: resolved, modalidad: form.modalidad, descripcion: form.descripcion, prioridad: form.prioridad, motivo: form.motivo, tipoTraslado: form.tipoTraslado, conContraste: form.conContraste, aislamiento: form.aislamiento }, file)} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">{isEdit ? "Guardar cambios" : "Agregar a la lista"}</button>
+            ? onUpdate(editStudy.id, { modalidad: form.modalidad, descripcion: form.descripcion, prioridad: form.prioridad, motivo: form.motivo, tipoTraslado: form.tipoTraslado, conContraste: form.conContraste, aislamiento: form.aislamiento, medicoRealiza: form.medicoRealiza, camaGuardia: form.camaGuardia, ordenMedica: form.ordenMedica }, file)
+            : onSubmit({ paciente: resolved, modalidad: form.modalidad, descripcion: form.descripcion, prioridad: form.prioridad, motivo: form.motivo, tipoTraslado: form.tipoTraslado, conContraste: form.conContraste, aislamiento: form.aislamiento, medicoRealiza: form.medicoRealiza, camaGuardia: form.camaGuardia, ordenMedica: form.ordenMedica }, file)} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">{isEdit ? "Guardar cambios" : "Agregar a la lista"}</button>
         </div>
       </div>
     </div>

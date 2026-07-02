@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Clock, AlertTriangle, CheckCircle2, Play, X, 
-  ChevronDown, RotateCcw, Stethoscope, ShieldAlert, ShieldCheck, Truck, MessageCircle, Pencil, Lock, BedDouble, Layers 
+  ChevronDown, RotateCcw, Stethoscope, ShieldAlert, ShieldCheck, Truck, MessageCircle, Pencil, Lock, BedDouble, Layers, UserCircle, Users, Hospital 
 } from "lucide-react";
 import { typeMeta, waitMins, waitText, linkWhatsApp, fmtHora } from '../../utils/helpers';
-import { PRIORITIES, STATUS, TRASLADOS, ESTADOS_PRE_TRASLADO, ROLES } from '../../utils/constants';
+import { PRIORITIES, STATUS, TRASLADOS, ESTADOS_PRE_TRASLADO, ROLES, MEDICOS_HEMO, ENFERMEROS_HEMO, SALAS_HEMO } from '../../utils/constants';
 import { Badge } from '../ui/Badge';
 import type { Pedido, Usuario } from '../../types';
 import { API_URL } from '../../services/api';
+import { useStore } from '../../store/useStore';
 
 const FONT_MONO = "'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace";
 
@@ -33,6 +34,7 @@ export function StudyCard({
   study, patientStudies = [], usuarios, role, now, perms = {}, currentUser, 
   onAdvance, onRevert, onAuthorize, onTransfer = () => {}, onEdit = () => {}, onAvisado = () => {}, onCancel 
 }: StudyCardProps) {
+  const { asignarRecurso } = useStore();
   const [verHist, setVerHist] = useState(false);
   const [verArchivo, setVerArchivo] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -141,6 +143,24 @@ export function StudyCard({
               ? `Quedan ${hermanos.length} estudio${hermanos.length > 1 ? "s" : ""} de este paciente — no devolver aún`
               : `+${hermanos.length} de este paciente: ${[...new Set(hermanos.map((h) => typeMeta(h.modalidad)?.short))].join(", ")}`}
           </p>
+        )}
+
+        {(perms.asignar || study.medicoRealiza || study.enfermeroRealiza || study.sala) && (
+          <div className="mt-2">
+            {perms.asignar ? (
+              <div className="grid grid-cols-3 gap-2">
+                <select value={study.medicoRealiza || ""} onChange={(e) => asignarRecurso(study.id, "medicoRealiza", e.target.value as any)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:border-blue-400"><option value="">Operador…</option>{MEDICOS_HEMO.map((m) => <option key={m} value={m}>{m}</option>)}</select>
+                <select value={study.enfermeroRealiza || ""} onChange={(e) => asignarRecurso(study.id, "enfermeroRealiza", e.target.value as any)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:border-blue-400"><option value="">Enfermero…</option>{ENFERMEROS_HEMO.map((m) => <option key={m} value={m}>{m}</option>)}</select>
+                <select value={study.sala || ""} onChange={(e) => asignarRecurso(study.id, "sala", e.target.value as any)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:border-blue-400"><option value="">Sala…</option>{SALAS_HEMO.map((m) => <option key={m} value={m}>{m}</option>)}</select>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500">
+                <span className="inline-flex items-center gap-1"><UserCircle size={12} /> {study.medicoRealiza || "Operador sin asignar"}</span>
+                <span className="inline-flex items-center gap-1"><Users size={12} /> {study.enfermeroRealiza || "Enfermero sin asignar"}</span>
+                <span className="inline-flex items-center gap-1"><Hospital size={12} /> {study.sala || "Sala sin asignar"}</span>
+              </div>
+            )}
+          </div>
         )}
 
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
