@@ -30,6 +30,21 @@ export interface Internacion {
   estado: string;
 }
 
+export interface PadronEntry {
+  internacionId: string;
+  pacienteId: string;
+  hc: string;
+  apellido: string;
+  nombre: string;
+  dni: string;
+  fechaNacimiento: string;
+  sexo: string;
+  servicio: string;
+  sector: string;
+  cama: string;
+  obraSocial?: string;
+}
+
 export interface Usuario {
   id: string;
   nombre: string;

@@ -94,7 +94,7 @@ export function AddStudyModal({ open, onClose, onSubmit, onUpdate, editStudy, pa
   const resolved = isEdit && editStudy
     ? { hc: editStudy._paciente?.hc, apellido: editStudy._paciente?.nombreCompleto, servicio: editStudy._servicio, sector: editStudy._servicio, cama: editStudy._paciente?.cama }
     : found
-    ? { hc: found.hc, apellido: found.apellido, nombre: found.nombre, dni: found.dni, fechaNacimiento: found.fechaNacimiento, sexo: found.sexo, servicio: found.servicio, sector: found.sector, cama: found.servicio === "Guardia" ? (form.camaGuardia.trim() || "—") : found.cama }
+    ? { internacionId: found.internacionId, pacienteId: found.pacienteId, hc: found.hc, apellido: found.apellido, nombre: found.nombre, dni: found.dni, fechaNacimiento: found.fechaNacimiento, sexo: found.sexo, servicio: found.servicio, sector: found.sector, cama: found.servicio === "Guardia" ? (form.camaGuardia.trim() || "—") : found.cama }
     : noMatch
       ? { hc: form.hc.trim(), apellido: form.manual.apellido.trim(), nombre: form.manual.nombre.trim(), dni: form.manual.dni.trim() || "—",
           fechaNacimiento: form.manual.edad ? today(new Date().getFullYear() - Number(form.manual.edad), 1, 1) : today(1990, 1, 1),

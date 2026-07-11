@@ -1,0 +1,23 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+context: |
+  Gestor_Hemodinamia: management of hemodynamics study requests ("pedidos") over hospital patients and admissions (UI copy in Spanish).
+  Packages: cliente-web (Vite 6 + React 19 + TypeScript + Tailwind v4 + React Router 7 + Zustand + axios + react-hook-form + recharts + framer-motion), server (NestJS 11 + JWT). Each package has its own package.json and npm lockfile; no root workspace package.
+  Client layout: non-feature-first under cliente-web/src/ with components/, services/, store/ (Zustand), types/, utils/, assets/.
+  Server: Nest modules under server/src/ (auth, usuarios, pacientes, internaciones, pedidos); bootstrap server/src/main.ts; listens on PORT ?? 3000 with CORS enabled and no global API prefix.
+  Current data layer: fully in-memory seed data (server/src/data/seed.ts, typed in server/src/data/types.ts). No persistence yet: package has no @nestjs/typeorm, no DB driver, no @nestjs/config, no .env.
+  Ongoing work: connect the Hemodinamia backend read-only to the Gestor_Camas MySQL database (db_bed_manager, tables prefixed sv_). Read sv_patient / sv_admision (and related bed/sector tables) via a dedicated TypeORM connection with synchronize:false; Hemodinamia owns its own writable tables (e.g. pedidos). Map Camas snake_case/English + UUID schema to the existing Spanish camelCase DTOs so cliente-web contract is preserved.
+  Sibling repo: Gestor_Camas (hospital bed/admissions management, NestJS + TypeORM + MySQL) is the source of truth for patients and admissions. Its schema lives in Gestor_Camas/server/src/**/*.entity.ts.
+  Other folders: Test_new_versions (experiments). OpenSpec changes: openspec/changes/<name>/.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours

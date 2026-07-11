@@ -1,8 +1,10 @@
 import axios from 'axios';
-import type { Paciente, Internacion, Usuario, Pedido } from '../types';
+import type { Paciente, Internacion, Usuario, Pedido, PadronEntry } from '../types';
 
-//const API_URL = 'http://localhost:3000';
-export const API_URL = 'https://gestor-hemodinamia.onrender.com';
+// URL del backend. Configurable por entorno (VITE_API_URL) para desarrollo/E2E;
+// por defecto usa el backend de producción.
+export const API_URL =
+  import.meta.env.VITE_API_URL || 'https://gestor-hemodinamia.onrender.com';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -31,7 +33,7 @@ export const getPacientes = async (): Promise<Paciente[]> => {
   return data;
 };
 
-export const getPadron = async (): Promise<any[]> => {
+export const getPadron = async (): Promise<PadronEntry[]> => {
   const { data } = await api.get('/pacientes/padron');
   return data;
 };

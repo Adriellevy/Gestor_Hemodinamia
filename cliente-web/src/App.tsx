@@ -160,19 +160,26 @@ export default function App() {
     // Needs better handling for API IDs, but mimicking previous local state
     const pid = `p_${Math.random().toString(36).slice(2,9)}`;
     const iid = `i_${Math.random().toString(36).slice(2,9)}`;
-    
-    // Simulate finding patient vs creating new
-    const existente = pacientes.find(p => p.hc === data.paciente.hc);
+
     let finalPid = pid;
     let finalIid = iid;
-    if (existente) {
-      finalPid = existente.id;
-      const inter = internaciones.find(i => i.pacienteId === finalPid && i.estado === "activa");
-      if (inter) finalIid = inter.id;
-      else await createInternacion({ id: finalIid, pacienteId: finalPid, servicioId: data.paciente.sector, ubicacion: { sector: data.paciente.sector, habitacion: "—", cama: data.paciente.cama }, fechaIngreso: Date.now(), fechaAlta: null, estado: "activa" });
+    if (data.paciente.internacionId) {
+      // Paciente del padrón (Gestor de Camas): el pedido referencia directamente
+      // la admisión de Camas por su UUID. No se crea nada localmente.
+      finalPid = data.paciente.pacienteId || pid;
+      finalIid = data.paciente.internacionId;
     } else {
-      await createPaciente({ id: pid, hc: data.paciente.hc, documento: { tipo: "DNI", numero: data.paciente.dni }, apellido: data.paciente.apellido, nombre: data.paciente.nombre, fechaNacimiento: data.paciente.fechaNacimiento, sexo: data.paciente.sexo });
-      await createInternacion({ id: iid, pacienteId: pid, servicioId: data.paciente.sector, ubicacion: { sector: data.paciente.sector, habitacion: "—", cama: data.paciente.cama }, fechaIngreso: Date.now(), fechaAlta: null, estado: "activa" });
+      // Carga manual: paciente fuera de Camas → se conserva en el store local.
+      const existente = pacientes.find(p => p.hc === data.paciente.hc);
+      if (existente) {
+        finalPid = existente.id;
+        const inter = internaciones.find(i => i.pacienteId === finalPid && i.estado === "activa");
+        if (inter) finalIid = inter.id;
+        else await createInternacion({ id: finalIid, pacienteId: finalPid, servicioId: data.paciente.sector, ubicacion: { sector: data.paciente.sector, habitacion: "—", cama: data.paciente.cama }, fechaIngreso: Date.now(), fechaAlta: null, estado: "activa" });
+      } else {
+        await createPaciente({ id: pid, hc: data.paciente.hc, documento: { tipo: "DNI", numero: data.paciente.dni }, apellido: data.paciente.apellido, nombre: data.paciente.nombre, fechaNacimiento: data.paciente.fechaNacimiento, sexo: data.paciente.sexo });
+        await createInternacion({ id: iid, pacienteId: pid, servicioId: data.paciente.sector, ubicacion: { sector: data.paciente.sector, habitacion: "—", cama: data.paciente.cama }, fechaIngreso: Date.now(), fechaAlta: null, estado: "activa" });
+      }
     }
 
     const estadoIni = (requiereAuth(data.modalidad) && data.prioridad !== "urgente") ? "autorizacion_pendiente" : "solicitado";

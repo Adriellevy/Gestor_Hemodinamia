@@ -10,6 +10,12 @@ export class PedidosService {
     return this.pedidos.filter(p => p.estado !== 'realizado' && p.estado !== 'cancelado');
   }
 
+  /** Todos los pedidos sin filtrar (incluye terminados). Usado para resolver
+   *  qué internaciones de Camas referenciar por trazabilidad. */
+  findAllRaw(): Pedido[] {
+    return this.pedidos;
+  }
+
   findTerminados(page: number, limit: number): { data: Pedido[], total: number, page: number, limit: number } {
     const terminados = this.pedidos.filter(p => p.estado === 'realizado' || p.estado === 'cancelado');
     // Sort descending by request date so newer completed are first
